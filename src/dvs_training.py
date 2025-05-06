@@ -6,16 +6,16 @@ config.display()
 
 # Training dataset
 dataset_train = RGBDDataset()
-dataset_train.load('../data/N_MNIST_images_10ms_skip_50', 'training')
+dataset_train.load('../data/N_MNIST_images_20ms_skip_50', 'training')
 dataset_train.prepare()
 
 # Validation dataset
 dataset_testing = RGBDDataset()
-dataset_testing.load('../data/N_MNIST_images_10ms_skip_50', 'testing')
+dataset_testing.load('../data/N_MNIST_images_20ms_skip_50', 'testing')
 dataset_testing.prepare()
 
 # Load and display random samples
-image_ids = np.random.choice(dataset_train.image_ids, 30)
+image_ids = np.random.choice(dataset_train.image_ids, 3)
 for image_id in image_ids:
     image = dataset_train.load_image(image_id)
     mask, class_ids = dataset_train.load_mask(image_id)
