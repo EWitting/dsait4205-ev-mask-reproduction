@@ -33,3 +33,6 @@ data/NMNIST
 logs/
 temp_logs/
 *.h5
+
+
+src/dsait4205_ev_mask_reproduction.egg-info
