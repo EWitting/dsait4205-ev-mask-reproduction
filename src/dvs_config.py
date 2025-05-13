@@ -88,6 +88,9 @@ class DvsConfig(Config):
         "mrcnn_mask_loss": 5.
     }
 
+class InferenceConfig(DvsConfig):
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
 
 config = DvsConfig()
 config.display()
