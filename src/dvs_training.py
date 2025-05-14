@@ -8,7 +8,7 @@ inference_config = InferenceConfig()
 config.display()
 
 def obj_to_hash(obj):
-    return hashlib.md5(str(obj).encode()).hexdigest()
+    return hashlib.md5(str(obj).encode()).hexdigest()[:8]
 
 def show_train_samples(dataset, n):
     image_ids = np.random.choice(dataset.image_ids, n)
@@ -16,6 +16,26 @@ def show_train_samples(dataset, n):
         image = dataset.load_image(image_id)
         mask, class_ids = dataset.load_mask(image_id)
         visualize.display_top_masks(image, mask, class_ids, dataset.class_names)
+
+def show_model_pred_samples(inference_model, dataset, n):    
+    image_ids = np.random.choice(dataset.image_ids, n)
+    for image_id in image_ids:
+        original_image, image_meta, gt_class_id, gt_bbox, gt_mask =\
+            modellib.load_image_gt(dataset, inference_config,
+                                image_id) # , use_mini_mask=False
+        log("original_image", original_image)
+        print(original_image.shape)
+        log("image_meta", image_meta)
+        log("gt_class_id", gt_class_id)
+        log("gt_bbox", gt_bbox)
+        log("gt_mask", gt_mask)
+        visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
+                                    dataset.class_names, figsize=(8, 8))
+        results = inference_model.detect([original_image], verbose=1)
+        r = results[0]
+        visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
+                                    dataset.class_names, scores=r['scores'])
+        
 
 def load_weights(model, pretrained_weights):
     if pretrained_weights == "imagenet":
@@ -27,7 +47,7 @@ def load_weights(model, pretrained_weights):
     else:
         print('Not loading any weights!')
 
-def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights='coco', skip_if_exists=False):
+def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights='coco', skip_if_exists=False, visualize_num=0):
     """Train the model with the given fit parameters. Model is saved under name based on the data path and fit parameters, and whether multiple digits are used.
     
     :data_path: Path to the data
@@ -35,6 +55,7 @@ def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights
     :multiple_digits: Wether to use the dataset that automatically generates samples with multiple digits
     :pretrained_weights: Pretrained weights
     :skip_if_exists: If True, will skip training if the model already exists
+    :visualize_num: Number of images to visualize after training
     
     Returns:
     :model_path: Path to the model
@@ -60,7 +81,8 @@ def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights
     dataset_testing.prepare()
 
     # Load and display random samples
-    show_train_samples(dataset_train, n=3)
+    if visualize_num > 0:
+        show_train_samples(dataset_train, n=visualize_num)
 
     # Initialize model
     model = modellib.MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
@@ -77,31 +99,9 @@ def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights
     model.keras_model.save_weights(model_path)
     print(f'Model saved to {model_path}')
     
-    # Run inference to visualize some results
-    inference_model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
-    inference_model.load_weights(model_path, by_name=True)
-
-    # Test and visualize a random image
-    image_id = random.choice(dataset_testing.image_ids)
-    original_image, image_meta, gt_class_id, gt_bbox, gt_mask =\
-        modellib.load_image_gt(dataset_testing, inference_config,
-                            image_id) # , use_mini_mask=False
-
-    log("original_image", original_image)
-    print(original_image.shape)
-    log("image_meta", image_meta)
-    log("gt_class_id", gt_class_id)
-    log("gt_bbox", gt_bbox)
-    log("gt_mask", gt_mask)
-
-    visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
-                                dataset_train.class_names, figsize=(8, 8))
-
-    results = inference_model.detect([original_image], verbose=1)
-    print(results)
-
-    r = results[0]
-    visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
-                                dataset_train.class_names, scores=r['scores'])
-    
+    if visualize_num > 0:
+        # Run inference to visualize some results
+        inference_model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
+        inference_model.load_weights(model_path, by_name=True)
+        show_test_samples(inference_model, dataset_testing, n=visualize_num)
     return model_path

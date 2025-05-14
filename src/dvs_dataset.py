@@ -47,8 +47,6 @@ class RGBDDataset(ObjectsDataset):
 
         ind = 0
         count = 0
-        # exclude = set(['depth', 'mask'])
-        print(os.listdir(dataset_dir))
 
         for number in os.listdir(dataset_dir):
             parent_root = os.path.join(dataset_dir, number)
@@ -56,12 +54,10 @@ class RGBDDataset(ObjectsDataset):
             for frame in os.listdir(frame_dir):
                 if ind % skip == 0:
                     frame_id = frame[6:]
-                    print(frame_id)
                     frame_path = os.path.join(frame_dir, 'frame_' + frame_id)
                     depth_path = os.path.join(parent_root, 'depth', 'depth_' + frame_id)
                     mask_path = os.path.join(parent_root, 'mask', 'mask_' + frame_id)
                     # Maybe save a txt document with number and color and parse it here as target
-                    print(depth_path)
                     if not os.path.isfile(depth_path) and not os.path.isfile(mask_path):
                         print('Warning: No DEPTH and MASK found for ' + frame_path)
                     if not os.path.isfile(depth_path):

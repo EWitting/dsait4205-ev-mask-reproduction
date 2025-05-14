@@ -21,7 +21,7 @@ from mrcnn import visualize
 from mrcnn.model import log
 
 # Directory to save logs and trained model
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")  # TODO: set this to model directory
+MODEL_DIR = os.path.join(ROOT_DIR, "model")
 
 # Local path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")

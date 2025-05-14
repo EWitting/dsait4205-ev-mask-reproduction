@@ -40,10 +40,10 @@ if __name__ == '__main__':
 
         print(f'Training models for {window_len}ms')
         for train_config in TRAIN_CONFIGS:
-            model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS)
+            model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
 
             print('Evaluating model')
-            results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=10)
+            results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=0)
 
             # Save results
             os.makedirs(RESULTS_DIR, exist_ok=True)

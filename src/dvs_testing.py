@@ -3,6 +3,7 @@ import numpy as np
 from src.dvs_config import *
 from src.dvs_dataset import *
 from src.dvs_dataset_multiple import *
+from tqdm import tqdm
 
 inference_config = InferenceConfig()
 config = DvsConfig()
@@ -13,6 +14,7 @@ def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0)
     # Testing dataset
     dataset_validation = RGBDDatasetMultiple() if multiple_digits else RGBDDataset()
     dataset_validation.load(dataset_path, 'validation')
+    dataset_validation.prepare()
 
     # Recreate the model in inference mode
     model = modellib.MaskRCNN(mode="inference",
@@ -23,7 +25,7 @@ def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0)
     print('\n\n\n')
 
     # Visualize some images with predictions
-    for i in range(visualize_num):
+    for _ in range(visualize_num):
         # Test on a random image
         image_id = random.choice(dataset_validation.image_ids)
         print(image_id)
@@ -45,11 +47,10 @@ def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0)
         visualize.display_instances(empty_image, r['rois'], r['masks'], r['class_ids'],
                                     dataset_validation.class_names, scores=r['scores'])
 
-
     # # Compute VOC-Style mAP @ IoU=0.5
     image_ids = dataset_validation.image_ids
     APs, ACCs, IoUs = [], [], []
-    for image_id in image_ids:
+    for image_id in tqdm(image_ids, desc='Evaluating on validation split'):
     
         # Load image and ground truth data
         image, image_meta, gt_class_id, gt_bbox, gt_mask = \
