@@ -91,7 +91,8 @@ def save_images(chosen_directory, dataset, mask_indices_per_label, mnist_dataset
 
         if i % skip == 0:
             frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs)
-
+            print(f'Processing {i}th entry with target {target}')
+            print(f'Frames: {len(frames)}, Masks: {len(colorized_masks)}, Time frames: {len(time_frames)}')
             # If we don't want to take all of the images
             # frames, colorized_masks, time_frames = take_less_samples(frames, colorized_masks, time_frames)
 

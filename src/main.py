@@ -23,16 +23,18 @@ TRAIN_DATA_PERCENTAGE = 0.8
 SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
 
-REPRESENTATION_MODE = 'ts'  # 'rgbd' or 'ts' (Time Surface)
+REPRESENTATION_MODE = 'rgbd'  # 'rgbd' or 'ts' (Time Surface)
 
 if __name__ == '__main__':
 
-    # Download Neuromorphic MNIST dataset
-    train_dataset = tonic.datasets.NMNIST(save_to='../data', train=True)
-    test_dataset = tonic.datasets.NMNIST(save_to='../data', train=False)
+    if not os.path.exists('../data/NMINST'):
+        # Download Neuromorphic MNIST dataset
+        train_dataset = tonic.datasets.NMNIST(save_to='../data', train=True)
+        test_dataset = tonic.datasets.NMNIST(save_to='../data', train=False)
 
-    # Split into train and test
-    split_train_test_validation('../data/NMNIST', '../data/N_MNIST', cleanup=False, train_data_percentage=TRAIN_DATA_PERCENTAGE)
+    if not os.path.exists('../data/N_MNIST'):
+        # Split into train and test
+        split_train_test_validation('../data/NMNIST', '../data/N_MNIST', cleanup=False, train_data_percentage=TRAIN_DATA_PERCENTAGE)
 
     # Generate RGB-D images and masks
     for window_len in WINDOW_LENGTHS:
