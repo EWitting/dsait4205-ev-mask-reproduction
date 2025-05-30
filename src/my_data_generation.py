@@ -78,8 +78,10 @@ def take_less_samples(frames, colorized_masks, time_frames, how_many_to_take = 1
     return frames, colorized_masks, time_frames
 
 
-def save_images(chosen_directory, dataset, skip, mask_indices_per_label, mnist_dataset, train_data_percentage=1, secondary_chosen_directory=''):
+def save_images(chosen_directory, dataset, mask_indices_per_label, mnist_dataset, train_data_percentage=1, secondary_chosen_directory='', **kwargs):
     last_saved_target, last_saved_index = 0, 0
+
+    skip = kwargs.get('skip', 1000)
 
     for i, entry in enumerate(dataset):
         _, current_target = entry
@@ -88,7 +90,7 @@ def save_images(chosen_directory, dataset, skip, mask_indices_per_label, mnist_d
             last_saved_target = current_target
 
         if i % skip == 0:
-            frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset)
+            frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs)
 
             # If we don't want to take all of the images
             # frames, colorized_masks, time_frames = take_less_samples(frames, colorized_masks, time_frames)
@@ -117,7 +119,7 @@ def save_images(chosen_directory, dataset, skip, mask_indices_per_label, mnist_d
                 cv2.imwrite(target_path + '/depth/depth_' + str(i) + '_' + str(j) + '.png', time_frames[j])
 
 
-def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cleanup=False, skip=1000):
+def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cleanup=False, **kwargs):
     """
     Converting the input binary images to RGB-D images and create their masks.
     """
@@ -144,6 +146,6 @@ def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cle
         mask_indices_per_label_test.append(indices_with_this_label_test)
 
     print('--------------------------- Validation ---------------------------')
-    save_images(validation_path, test_dataset, skip, mask_indices_per_label_test, test_X)
+    save_images(validation_path, test_dataset, mask_indices_per_label_test, test_X, **kwargs)
     print('--------------------------- Train&Test ---------------------------')
-    save_images(training_path, train_dataset, skip, mask_indices_per_label_train, train_X, train_data_percentage=0.8, secondary_chosen_directory=testing_path)
+    save_images(training_path, train_dataset, mask_indices_per_label_train, train_X, train_data_percentage=0.8, secondary_chosen_directory=testing_path, **kwargs)
