@@ -125,7 +125,7 @@ def generate_masks(dataset_entry, index, last_saved_index, mask_indices_per_labe
     my_events, target = dataset_entry
     print("Target:", target)
 
-    window_len = kwargs.get('window_len', 20)
+    # window_len = kwargs.get('window_len', 20)
 
     positive_event_array = generate_event_arrays(my_events, 1)
     negative_event_array = generate_event_arrays(my_events, 0)
@@ -145,7 +145,7 @@ def generate_masks(dataset_entry, index, last_saved_index, mask_indices_per_labe
 
     frames, frames_denoised, cropped_frames, len_x, len_y, cropping_positions, time_frames \
         = generate_event_frames_with_fixed_time_window(positive_event_array_denoised, negative_event_array_denoised,
-                                                       positive_event_array, negative_event_array, window_len)
+                                                       positive_event_array, negative_event_array, **kwargs)
 
     # Get mask based on index and target
 

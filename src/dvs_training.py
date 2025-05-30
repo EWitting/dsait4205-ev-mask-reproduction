@@ -41,6 +41,7 @@ def load_weights(model, pretrained_weights):
     if pretrained_weights == "imagenet":
         model.load_weights(model.get_imagenet_weights(), by_name=True)
     elif pretrained_weights == "coco":
+        print(f"Loading weights from COCO dataset at: {COCO_MODEL_PATH}")
         model.load_weights(COCO_MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask", "conv1"])
     elif pretrained_weights == "last":
         model.load_weights(model.find_last(), by_name=True)
