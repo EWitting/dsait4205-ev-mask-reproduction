@@ -1272,6 +1272,8 @@ def load_image_gt(dataset, config, image_id, augmentation=None):
         # Change mask back to bool
         mask = mask.astype(bool)
 
+    
+
     # Note that some boxes might be all zeros if the corresponding mask got cropped out.
     # and here is to filter them out
     _idx = np.sum(mask, axis=(0, 1)) > 0

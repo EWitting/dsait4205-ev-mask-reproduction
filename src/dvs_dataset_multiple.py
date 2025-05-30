@@ -92,34 +92,67 @@ class RGBDDatasetMultiple(ObjectsDataset):
 
     def generate_actual_frames(self, new_frame_path, new_depth_path, new_mask_path):
         # Locations for 4 digits of 34x34 in 64x64 images
-        image_locations = [(0, 0), (0, 32), (32, 0), (32, 32)]
+        offset = 12
+        corner_0 = (random.randint(0, offset), random.randint(0, offset))
+        corner_1 = (random.randint(0, offset), 32 - random.randint(0, offset))
+        corner_2 = (32 - random.randint(0, offset), random.randint(0, offset))
+        corner_3 = (32 - random.randint(0, offset), 32 - random.randint(0, offset))
+        image_locations = [corner_0, corner_1, corner_2, corner_3]
+        # image_locations = [(0, 0), (0, 32), (32, 0), (32, 32)]
+        
+
         new_frame = np.zeros((64, 64, 3), dtype=np.uint8)
         new_depth = np.zeros((64, 64), dtype=np.uint8)
         new_mask = np.zeros((64, 64, 3), dtype=np.uint8)
 
         for d, (_, _, frame_path, depth_path, mask_path) in enumerate(self.current_entries):
             frame = skimage.io.imread(frame_path)
+            # print(frame)
             depth = cv2.imread(depth_path, cv2.IMREAD_GRAYSCALE)
             mask = cv2.cvtColor(skimage.io.imread(mask_path), cv2.COLOR_RGBA2BGR)
             h, w, c = frame.shape
             x0, y0, x1, y1 = image_locations[d][1], image_locations[d][0], \
                              image_locations[d][1] + w - 2, image_locations[d][0] + h - 2
 
-            new_frame[y0:y1, x0:x1] = frame[1:h - 1, 1:w - 1]
-            new_depth[y0:y1, x0:x1] = depth[1:h - 1, 1:w - 1]
-            new_mask[y0:y1, x0:x1] = mask[1:h - 1, 1:w - 1]
+            # new_frame[y0:y1, x0:x1] = frame[1:h - 1, 1:w - 1]
+            # new_depth[y0:y1, x0:x1] = depth[1:h - 1, 1:w - 1]
+            # new_mask[y0:y1, x0:x1] = mask[1:h - 1, 1:w - 1]
+            frame_crop = frame[1:h - 1, 1:w - 1]              # (32,32,3)
+
+            # bool-masker: waar de nieuwe digit iets tekent (niet zwart)
+            new_pixels = (frame_crop.sum(axis=2) > 0)[..., None]   # shape (32,32,1)
+
+            # overschrijf alleen die pixels; andere blijven ongewijzigd
+            new_frame[y0:y1, x0:x1] = np.where(
+                new_pixels,          # True  -> neem nieuwe pixel
+                frame_crop,          # False -> laat oude waarde staan
+                new_frame[y0:y1, x0:x1]
+            )
+            # new_frame[y0:y1, x0:x1] = np.maximum(new_frame[y0:y1, x0:x1], frame[1:h - 1, 1:w - 1])
+            new_depth[y0:y1, x0:x1] = np.maximum(new_depth[y0:y1, x0:x1], depth[1:h - 1, 1:w - 1])
+            new_mask[y0:y1, x0:x1] = np.maximum(new_mask[y0:y1, x0:x1], mask[1:h - 1, 1:w - 1])
 
             # Tweaks the values of the red channel, so we have different colors for each mask
             partial_mask = np.zeros((h - 2, w - 2))
             xs, ys = np.where(mask[1:h - 1, 1:w - 1, 2] > 0)
             partial_mask[xs, ys] = d / 4 * 255
-            new_mask[y0: y1, x0: x1, 1] = partial_mask
+            new_mask[y0:y1, x0:x1, 1] = np.where(
+                partial_mask > 0,
+                partial_mask,
+                new_mask[y0:y1, x0:x1, 1]
+            )
+            # new_mask[y0:y1, x0:x1, 1] = partial_mask[partial_mask > 0]  # Set the green channel to the partial mask values
+            # new_mask[xs, ys, 1] = partial_mask[xs, ys]  
+            # new_mask[y0: y1, x0: x1, 1] = partial_mask
+
 
         new_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2RGB)
 
         cv2.imwrite(new_frame_path, new_frame)
         cv2.imwrite(new_depth_path, new_depth)
         cv2.imwrite(new_mask_path, new_mask)
+    
+    
 
     def load(self, dataset_dir, subset, skip=1):
         assert (subset == 'training' or subset == 'validation' or subset == 'testing')
