@@ -40,7 +40,7 @@ if __name__ == '__main__':
     for window_len in WINDOW_LENGTHS:
         print(f'Generating RGB-D images and masks for {window_len}ms')
         path = f'../data/N_MNIST_images_{window_len}ms_skip_{WINDOW_SKIP}'
-        generate_rgbd_images_and_masks(train_dataset, test_dataset, path, cleanup=False, window_len=window_len, skip=WINDOW_SKIP, representation_mode=REPRESENTATION_MODE)
+        generate_rgbd_images_and_masks(train_dataset, test_dataset, path, cleanup=True, window_len=window_len, skip=WINDOW_SKIP, representation_mode=REPRESENTATION_MODE)
 
         print(f'Training models for {window_len}ms')
         for train_config in TRAIN_CONFIGS:

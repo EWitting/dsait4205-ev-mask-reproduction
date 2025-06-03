@@ -2,37 +2,39 @@ import numpy as np
 import statistics
 import math
 import cv2
+# import pdb # For pdb.set_trace() if preferred
 
 # --- generate_event_arrays, gen_extremities, generate_cropped_frames (Keep these as they are) ---
-# (Your existing implementations of these functions are fine and will be used)
 def generate_event_arrays(events, polarity, div_rate=300, mult_rate=100):
     filtered_events = list(filter(lambda entry: entry[3] == polarity, events))
     x_data = [entry[0] for entry in filtered_events]
     y_data = [entry[1] for entry in filtered_events]
     z_data = [int(i / div_rate) * mult_rate for i, entry in enumerate(filtered_events)]
-    # time_data is now in MICROSECONDS, which is better for tau
     time_data = [int(entry[2]) for entry in filtered_events] # Keep as microseconds
     return np.array(x_data), np.array(y_data), np.array(z_data), np.array(time_data)
 
 
 def gen_extremities(x_data_pos, y_data_pos, x_data_neg, y_data_neg,
                     current_i, i, current_j, j):
-    # Note: This function might need adjustment if event arrays can be empty for a window
-    # For simplicity, assuming it handles empty slices gracefully or they are filtered out before calling.
-    
     all_x_coords = []
     all_y_coords = []
 
-    if i > current_i and len(x_data_pos) > 0 : # Check if there are positive events to slice
-        all_x_coords.extend(x_data_pos[current_i:i])
-        all_y_coords.extend(y_data_pos[current_i:i])
+    if i > current_i and len(x_data_pos) > 0 :
+        slice_x_pos = x_data_pos[current_i:i]
+        slice_y_pos = y_data_pos[current_i:i]
+        if len(slice_x_pos) > 0:
+            all_x_coords.extend(slice_x_pos)
+            all_y_coords.extend(slice_y_pos)
     
-    if j > current_j and len(x_data_neg) > 0: # Check if there are negative events to slice
-        all_x_coords.extend(x_data_neg[current_j:j])
-        all_y_coords.extend(y_data_neg[current_j:j])
+    if j > current_j and len(x_data_neg) > 0:
+        slice_x_neg = x_data_neg[current_j:j]
+        slice_y_neg = y_data_neg[current_j:j]
+        if len(slice_x_neg) > 0:
+            all_x_coords.extend(slice_x_neg)
+            all_y_coords.extend(slice_y_neg)
 
-    if not all_x_coords: # No events in this combined slice
-        return 0, 0, 0, 0 # len_x, len_y, overall_x, overall_y
+    if not all_x_coords:
+        return 0, 0, 0, 0 
 
     neg_mn_x = min(all_x_coords)
     neg_mn_y = min(all_y_coords)
@@ -44,71 +46,71 @@ def gen_extremities(x_data_pos, y_data_pos, x_data_neg, y_data_neg,
 
     overall_x = int(((neg_mx_x - neg_mn_x) / 2) + neg_mn_x)
     overall_y = int(((neg_mx_y - neg_mn_y) / 2) + neg_mn_y)
-
     return len_x, len_y, overall_x, overall_y
 
 
 def generate_cropped_frames(len_arr_x, len_arr_y, frames_list, center_indices_list):
-    if not len_arr_x or not len_arr_y: # Handle empty inputs
+    # print(f"DEBUG: generate_cropped_frames: len_arr_x (first 5): {len_arr_x[:5]}, len_arr_y (first 5): {len_arr_y[:5]}")
+    # print(f"DEBUG: generate_cropped_frames: Number of frames_list: {len(frames_list)}, center_indices_list (first 5): {center_indices_list[:5]}")
+    if not len_arr_x or not len_arr_y:
+        # print("DEBUG: generate_cropped_frames: Empty len_arr_x or len_arr_y, returning empty.")
         return [], 0, 0, []
 
-    # Filter out zero lengths if any, to avoid issues with statistics.mean
     valid_len_x = [lx for lx in len_arr_x if lx > 0]
     valid_len_y = [ly for ly in len_arr_y if ly > 0]
+    # print(f"DEBUG: generate_cropped_frames: valid_len_x count: {len(valid_len_x)}, valid_len_y count: {len(valid_len_y)}")
 
-    if not valid_len_x or not valid_len_y: # If all lengths were zero or empty
-         hx, hy = 10, 10 # Default crop size if no valid event extents
+    if not valid_len_x or not valid_len_y: 
+         hx, hy = 10, 10 
+         # print(f"DEBUG: generate_cropped_frames: No valid event extents, using default hx={hx}, hy={hy}")
     else:
         mean_len_x = statistics.mean(valid_len_x)
         mean_len_y = statistics.mean(valid_len_y)
         hx, hy = math.ceil(mean_len_x / 2), math.ceil(mean_len_y / 2)
-        # Ensure hx, hy are at least 1 to avoid zero-size crops
         hx = max(1, hx)
         hy = max(1, hy)
-
+        # print(f"DEBUG: generate_cropped_frames: Calculated mean_len_x={mean_len_x:.2f}, mean_len_y={mean_len_y:.2f}, hx={hx}, hy={hy}")
 
     cropped_frames_list, cropping_positions_list = [], []
     for ind, frame_item in enumerate(frames_list):
         (cx, cy) = center_indices_list[ind]
-        # Ensure cx, cy are within frame bounds if possible
-        # Though gen_extremities should give valid centers based on event data
         
-        # Calculate crop coordinates, ensuring they are within frame dimensions
         y0 = max(0, cy - hy)
-        y1 = min(frame_item.shape[0], cy + hy + 1) # +1 because slicing is exclusive at end
+        y1 = min(frame_item.shape[0], cy + hy + 1) 
         x0 = max(0, cx - hx)
         x1 = min(frame_item.shape[1], cx + hx + 1)
 
-        # Ensure y1 > y0 and x1 > x0 to prevent empty slices
         if y1 <= y0: y1 = y0 + 1
         if x1 <= x0: x1 = x0 + 1
         
-        # Final check to ensure crop is within frame boundaries after adjustments
         y1 = min(frame_item.shape[0], y1)
         x1 = min(frame_item.shape[1], x1)
 
-
         cropped = frame_item[y0:y1, x0:x1]
-        if cropped.size == 0: # If crop somehow becomes empty
-            # Fallback: use a small default crop or the full frame
-            # print(f"Warning: Empty crop for frame {ind}. Using fallback.")
-            cropped = frame_item[0:min(10, frame_item.shape[0]), 0:min(10, frame_item.shape[1])] # Example small crop
-            if cropped.size == 0: # If frame itself is too small
+        # if ind < 5: # Print for first few frames (LOOP PRINT - REMOVED/COMMENTED)
+            # print(f"DEBUG: generate_cropped_frames: Frame {ind}, cx={cx}, cy={cy}, crop_coords: y0={y0},y1={y1},x0={x0},x1={x1}, cropped_shape={cropped.shape}")
+
+        if cropped.size == 0: 
+            # print(f"DEBUG: Warning: Empty crop for frame {ind} at cx={cx},cy={cy} with hx={hx},hy={hy}. Orig shape={frame_item.shape}. Using fallback.")
+            cropped = frame_item[0:min(10, frame_item.shape[0]), 0:min(10, frame_item.shape[1])] 
+            if cropped.size == 0: 
+                # print(f"DEBUG: Fallback crop also empty. Using zeros.")
                 cropped = np.zeros((1,1,frame_item.shape[2] if len(frame_item.shape) == 3 else 1), dtype=frame_item.dtype)
 
-
         cropped_frames_list.append(cropped)
-        cropping_positions_list.append((y0, y1, x0, x1)) # Store as y0,y1,x0,x1
+        cropping_positions_list.append((y0, y1, x0, x1)) 
 
+    # print(f"DEBUG: generate_cropped_frames: Returning {len(cropped_frames_list)} cropped_frames. hx={hx}, hy={hy}")
     return cropped_frames_list, hx, hy, cropping_positions_list
 
 
 # --- Helper function for Time Surface generation (internal to this module) ---
 def _create_single_time_surface(event_xs, event_ys, event_ts,
-                                t_end_window, tau, img_height, img_width):
+                                t_end_window, tau, img_height, img_width, polarity_str=""):
+    # All prints removed from this function as it's called inside the main loop
     surface = np.full((img_height, img_width), -np.inf, dtype=np.float64)
     
-    if event_ts.size == 0: # No events of this polarity
+    if event_ts.size == 0:
         return np.zeros((img_height, img_width), dtype=np.float32)
 
     for i in range(event_ts.size):
@@ -118,13 +120,12 @@ def _create_single_time_surface(event_xs, event_ys, event_ts,
             
     dt = t_end_window - surface
     exp_surface = np.exp(-dt / tau)
-    exp_surface[np.isinf(surface)] = 0 # Pixels with no event become 0
+    exp_surface[np.isinf(surface)] = 0 
     
-    # Normalize to [0, 1]
     min_val, max_val = np.min(exp_surface), np.max(exp_surface)
     if max_val > min_val:
         exp_surface = (exp_surface - min_val) / (max_val - min_val)
-    else: # All same value (likely all zeros if no events or tau is tiny)
+    else: 
         exp_surface = np.zeros_like(exp_surface, dtype=np.float32)
         
     return exp_surface.astype(np.float32)
@@ -140,261 +141,286 @@ def generate_event_frames_with_fixed_time_window(
     **kwargs
     ):
 
-    print(f"Generating frames with window_len={window_len}us, representation_mode={representation_mode}")
+    print(f"\n--- generate_event_frames_with_fixed_time_window ---") # SUMMARY PRINT
+    print(f"DEBUG: Params: window_len={window_len}us, img_shape={img_shape}, mode='{representation_mode}', tau_on={tau_on}us, tau_off={tau_off}us") # SUMMARY PRINT
+    
     img_height, img_width = img_shape
 
-    # Unpack DENOISED event arrays (timestamps are in MICROSECONDS)
     x_data_pos_den, y_data_pos_den, _, time_data_pos_den = positive_event_array_denoised
     x_data_neg_den, y_data_neg_den, _, time_data_neg_den = negative_event_array_denoised
-
-    # Unpack NOISY event arrays (timestamps are in MICROSECONDS)
+    
     x_data_pos, y_data_pos, _, time_data_pos = positive_event_array
     x_data_neg, y_data_neg, _, time_data_neg = negative_event_array
 
-    # Output lists
-    output_main_frames = []       # List of 3-channel (H,W,3) uint8 frames
-    output_denoised_polarity_frames = [] # List of 3-channel (H,W,3) uint8 denoised polarity frames (for cropping)
-    output_depth_compatible_frames = [] # List of 1-channel (H,W,1) uint8 "depth" frames
+    print(f"DEBUG: Denoised Pos Events: count={len(x_data_pos_den)}, time range=[{np.min(time_data_pos_den) if len(time_data_pos_den)>0 else 'N/A'}, {np.max(time_data_pos_den) if len(time_data_pos_den)>0 else 'N/A'}]") # SUMMARY PRINT
+    print(f"DEBUG: Denoised Neg Events: count={len(x_data_neg_den)}, time range=[{np.min(time_data_neg_den) if len(time_data_neg_den)>0 else 'N/A'}, {np.max(time_data_neg_den) if len(time_data_neg_den)>0 else 'N/A'}]") # SUMMARY PRINT
+    if representation_mode == "rgbd":
+        print(f"DEBUG: Noisy Pos Events: count={len(x_data_pos)}, time range=[{np.min(time_data_pos) if len(time_data_pos)>0 else 'N/A'}, {np.max(time_data_pos) if len(time_data_pos)>0 else 'N/A'}]") # SUMMARY PRINT
+        print(f"DEBUG: Noisy Neg Events: count={len(x_data_neg)}, time range=[{np.min(time_data_neg) if len(time_data_neg)>0 else 'N/A'}, {np.max(time_data_neg) if len(time_data_neg)>0 else 'N/A'}]") # SUMMARY PRINT
+
+    output_main_frames = []       
+    output_denoised_polarity_frames = [] 
+    output_depth_compatible_frames = [] 
 
     len_arr_x_list, len_arr_y_list, center_indices_list = [], [], []
     
-    # Pointers for iterating through DENOISED event arrays
     idx_den_pos, idx_den_neg = 0, 0
-    # Pointers for iterating through NOISY event arrays (for RGBD mode)
     idx_noisy_pos, idx_noisy_neg = 0, 0
 
-    # Determine the overall time range from DENOISED events to define windows
     all_denoised_times = []
     if time_data_pos_den.size > 0: all_denoised_times.extend(time_data_pos_den)
     if time_data_neg_den.size > 0: all_denoised_times.extend(time_data_neg_den)
 
-    if not all_denoised_times: # No denoised events to define windows
-        # print("Warning: No denoised events available to define time windows.")
+    if not all_denoised_times:
+        print("DEBUG: No denoised events available to define time windows. Returning empty.") # SUMMARY PRINT
         return [], [], [], 0, 0, [], []
 
     min_overall_time = np.min(all_denoised_times)
     max_overall_time = np.max(all_denoised_times)
+    print(f"DEBUG: Overall denoised time range: [{min_overall_time}, {max_overall_time}]. Duration: {max_overall_time - min_overall_time} us") # SUMMARY PRINT
     
     current_window_start_time = min_overall_time
+    window_idx = 0
 
+    # --- START OF MAIN WINDOW LOOP ---
+    # All per-window detailed prints have been removed from this loop
     while current_window_start_time <= max_overall_time:
         current_window_end_time = current_window_start_time + window_len
+        # print(f"\nDEBUG: [Window {window_idx}] Time: [{current_window_start_time}, {current_window_end_time})") # LOOP PRINT - REMOVED
+        # print(f"DEBUG: [Window {window_idx}] Denoised Idx Start: pos={idx_den_pos}, neg={idx_den_neg}") # LOOP PRINT - REMOVED
+        # if representation_mode == "rgbd": # LOOP PRINT - REMOVED
+            # print(f"DEBUG: [Window {window_idx}] Noisy Idx Start: pos={idx_noisy_pos}, neg={idx_noisy_neg}") # LOOP PRINT - REMOVED
 
-        # --- 1. Prepare DENOISED polarity frame for this window (for cropping/extremities) ---
         current_denoised_polarity_frame = np.zeros((img_height, img_width, 3), np.uint8)
+        temp_idx_den_pos_start_win = idx_den_pos
+        temp_idx_den_neg_start_win = idx_den_neg
         
-        # Store indices for gen_extremities for denoised events
-        start_idx_den_pos_win, end_idx_den_pos_win = idx_den_pos, idx_den_pos
-        start_idx_den_neg_win, end_idx_den_neg_win = idx_den_neg, idx_den_neg
-
-        # Accumulate DENOISED positive events for current_denoised_polarity_frame
+        end_idx_den_pos_win = idx_den_pos
         while end_idx_den_pos_win < time_data_pos_den.size and \
               time_data_pos_den[end_idx_den_pos_win] < current_window_end_time:
             if time_data_pos_den[end_idx_den_pos_win] >= current_window_start_time:
                 x, y = int(x_data_pos_den[end_idx_den_pos_win]), int(y_data_pos_den[end_idx_den_pos_win])
                 if 0 <= y < img_height and 0 <= x < img_width:
-                    current_denoised_polarity_frame[y, x] = (255, 0, 0)  # Blue (ON)
+                    current_denoised_polarity_frame[y, x] = (255, 0, 0)
             end_idx_den_pos_win += 1
         
-        # Accumulate DENOISED negative events
+        end_idx_den_neg_win = idx_den_neg
         while end_idx_den_neg_win < time_data_neg_den.size and \
               time_data_neg_den[end_idx_den_neg_win] < current_window_end_time:
             if time_data_neg_den[end_idx_den_neg_win] >= current_window_start_time:
                 x, y = int(x_data_neg_den[end_idx_den_neg_win]), int(y_data_neg_den[end_idx_den_neg_win])
                 if 0 <= y < img_height and 0 <= x < img_width:
-                    current_denoised_polarity_frame[y, x] = (0, 0, 255)  # Red (OFF)
+                    current_denoised_polarity_frame[y, x] = (0, 0, 255)
             end_idx_den_neg_win += 1
         
-        # Count actual events processed for the denoised polarity frame for this window
-        num_den_pos_events_in_win = np.count_nonzero( (time_data_pos_den[idx_den_pos:end_idx_den_pos_win] >= current_window_start_time) )
-        num_den_neg_events_in_win = np.count_nonzero( (time_data_neg_den[idx_den_neg:end_idx_den_neg_win] >= current_window_start_time) )
+        den_pos_times_in_potential_range = time_data_pos_den[temp_idx_den_pos_start_win:end_idx_den_pos_win]
+        num_den_pos_events_in_win = np.count_nonzero(den_pos_times_in_potential_range >= current_window_start_time)
+        den_neg_times_in_potential_range = time_data_neg_den[temp_idx_den_neg_start_win:end_idx_den_neg_win]
+        num_den_neg_events_in_win = np.count_nonzero(den_neg_times_in_potential_range >= current_window_start_time)
 
+        # print(f"DEBUG: [Window {window_idx}] Denoised events processed: ...") # LOOP PRINT - REMOVED
+        # print(f"DEBUG: [Window {window_idx}] Denoised events IN WINDOW: ...") # LOOP PRINT - REMOVED
+        # print(f"DEBUG: [Window {window_idx}] current_denoised_polarity_frame non-zero pixels: ...") # LOOP PRINT - REMOVED
 
-        # --- 2. Generate MAIN output frame and DEPTH frame based on mode ---
         main_frame_for_this_window = np.zeros((img_height, img_width, 3), np.uint8)
-        depth_frame_for_this_window = np.zeros((img_height, img_width, 1), np.uint8) # Ensure single channel
+        depth_frame_for_this_window = np.zeros((img_height, img_width, 1), np.uint8)
 
         if representation_mode == "ts":
-            # Collect DENOISED events for TS generation
-            ts_pos_xs = x_data_pos_den[idx_den_pos:end_idx_den_pos_win][time_data_pos_den[idx_den_pos:end_idx_den_pos_win] >= current_window_start_time]
-            ts_pos_ys = y_data_pos_den[idx_den_pos:end_idx_den_pos_win][time_data_pos_den[idx_den_pos:end_idx_den_pos_win] >= current_window_start_time]
-            ts_pos_ts = time_data_pos_den[idx_den_pos:end_idx_den_pos_win][time_data_pos_den[idx_den_pos:end_idx_den_pos_win] >= current_window_start_time]
+            # print(f"DEBUG: [Window {window_idx}] Mode: 'ts'") # LOOP PRINT - REMOVED
+            ts_pos_mask = (time_data_pos_den[temp_idx_den_pos_start_win:end_idx_den_pos_win] >= current_window_start_time)
+            ts_pos_xs = x_data_pos_den[temp_idx_den_pos_start_win:end_idx_den_pos_win][ts_pos_mask]
+            ts_pos_ys = y_data_pos_den[temp_idx_den_pos_start_win:end_idx_den_pos_win][ts_pos_mask]
+            ts_pos_ts = time_data_pos_den[temp_idx_den_pos_start_win:end_idx_den_pos_win][ts_pos_mask]
 
-            ts_neg_xs = x_data_neg_den[idx_den_neg:end_idx_den_neg_win][time_data_neg_den[idx_den_neg:end_idx_den_neg_win] >= current_window_start_time]
-            ts_neg_ys = y_data_neg_den[idx_den_neg:end_idx_den_neg_win][time_data_neg_den[idx_den_neg:end_idx_den_neg_win] >= current_window_start_time]
-            ts_neg_ts = time_data_neg_den[idx_den_neg:end_idx_den_neg_win][time_data_neg_den[idx_den_neg:end_idx_den_neg_win] >= current_window_start_time]
+            ts_neg_mask = (time_data_neg_den[temp_idx_den_neg_start_win:end_idx_den_neg_win] >= current_window_start_time)
+            ts_neg_xs = x_data_neg_den[temp_idx_den_neg_start_win:end_idx_den_neg_win][ts_neg_mask]
+            ts_neg_ys = y_data_neg_den[temp_idx_den_neg_start_win:end_idx_den_neg_win][ts_neg_mask]
+            ts_neg_ts = time_data_neg_den[temp_idx_den_neg_start_win:end_idx_den_neg_win][ts_neg_mask]
+            # print(f"DEBUG: [Window {window_idx}] TS Input: ...") # LOOP PRINT - REMOVED
 
             ts_on_surface = _create_single_time_surface(ts_pos_xs, ts_pos_ys, ts_pos_ts,
-                                                        current_window_end_time, tau_on, img_height, img_width)
+                                                        current_window_end_time, tau_on, img_height, img_width, polarity_str="ON")
             ts_off_surface = _create_single_time_surface(ts_neg_xs, ts_neg_ys, ts_neg_ts,
-                                                         current_window_end_time, tau_off, img_height, img_width)
+                                                         current_window_end_time, tau_off, img_height, img_width, polarity_str="OFF")
             
-            main_frame_for_this_window[:, :, 0] = (ts_on_surface * 255).astype(np.uint8)  # Blue = ON-TS
-            main_frame_for_this_window[:, :, 2] = (ts_off_surface * 255).astype(np.uint8) # Red  = OFF-TS
-            # depth_frame_for_this_window remains zeros as requested
+            main_frame_for_this_window[:, :, 0] = (ts_on_surface * 255).astype(np.uint8)
+            main_frame_for_this_window[:, :, 2] = (ts_off_surface * 255).astype(np.uint8)
+            # print(f"DEBUG: [Window {window_idx}] TS Output: ...") # LOOP PRINT - REMOVED
 
         elif representation_mode == "rgbd":
-            # Use NOISY events for the main RGBD polarity frame and depth/recency frame
-            start_idx_noisy_pos_win = idx_noisy_pos
-            start_idx_noisy_neg_win = idx_noisy_neg
+            # print(f"DEBUG: [Window {window_idx}] Mode: 'rgbd'") # LOOP PRINT - REMOVED
+            temp_idx_noisy_pos_start_win = idx_noisy_pos
+            temp_idx_noisy_neg_start_win = idx_noisy_neg
+            noisy_pos_events_in_win_count = 0
+            current_noisy_pos_ptr = idx_noisy_pos
+            while current_noisy_pos_ptr < time_data_pos.size and time_data_pos[current_noisy_pos_ptr] < current_window_end_time:
+                if time_data_pos[current_noisy_pos_ptr] >= current_window_start_time:
+                    x, y = int(x_data_pos[current_noisy_pos_ptr]), int(y_data_pos[current_noisy_pos_ptr])
+                    if 0 <= y < img_height and 0 <= x < img_width:
+                        main_frame_for_this_window[y, x] = (255, 0, 0)
+                        depth_frame_for_this_window[y, x, 0] = (current_noisy_pos_ptr - temp_idx_noisy_pos_start_win + 1) 
+                    noisy_pos_events_in_win_count +=1
+                current_noisy_pos_ptr += 1
+            idx_noisy_pos = current_noisy_pos_ptr
 
-            # Noisy Positive Events
-            while idx_noisy_pos < time_data_pos.size and time_data_pos[idx_noisy_pos] < current_window_end_time:
-                if time_data_pos[idx_noisy_pos] >= current_window_start_time:
-                    x, y = int(x_data_pos[idx_noisy_pos]), int(y_data_pos[idx_noisy_pos])
+            noisy_neg_events_in_win_count = 0
+            current_noisy_neg_ptr = idx_noisy_neg
+            while current_noisy_neg_ptr < time_data_neg.size and time_data_neg[current_noisy_neg_ptr] < current_window_end_time:
+                if time_data_neg[current_noisy_neg_ptr] >= current_window_start_time:
+                    x, y = int(x_data_neg[current_noisy_neg_ptr]), int(y_data_neg[current_noisy_neg_ptr])
                     if 0 <= y < img_height and 0 <= x < img_width:
-                        main_frame_for_this_window[y, x] = (255, 0, 0)  # Blue (ON)
-                        depth_frame_for_this_window[y, x, 0] = (idx_noisy_pos - start_idx_noisy_pos_win + 1) # Recency
-                idx_noisy_pos += 1
+                        main_frame_for_this_window[y, x] = (0, 0, 255)
+                        depth_frame_for_this_window[y, x, 0] = max(depth_frame_for_this_window[y,x,0], (current_noisy_neg_ptr - temp_idx_noisy_neg_start_win + 1))
+                    noisy_neg_events_in_win_count += 1
+                current_noisy_neg_ptr += 1
+            idx_noisy_neg = current_noisy_neg_ptr
             
-            # Noisy Negative Events
-            while idx_noisy_neg < time_data_neg.size and time_data_neg[idx_noisy_neg] < current_window_end_time:
-                if time_data_neg[idx_noisy_neg] >= current_window_start_time:
-                    x, y = int(x_data_neg[idx_noisy_neg]), int(y_data_neg[idx_noisy_neg])
-                    if 0 <= y < img_height and 0 <= x < img_width:
-                        main_frame_for_this_window[y, x] = (0, 0, 255)  # Red (OFF)
-                        depth_frame_for_this_window[y, x, 0] = (idx_noisy_neg - start_idx_noisy_neg_win + 1) # Recency
-                idx_noisy_neg += 1
-            
-            # Histogram Equalization for depth frame (original logic)
+            # print(f"DEBUG: [Window {window_idx}] RGBD: Noisy events processed: ...") # LOOP PRINT - REMOVED
+            # print(f"DEBUG: [Window {window_idx}] RGBD Output: main_frame ON non-zero: ...") # LOOP PRINT - REMOVED
+            # print(f"DEBUG: [Window {window_idx}] RGBD Depth: depth_frame non-zero before eq: ...") # LOOP PRINT - REMOVED
+
             if np.count_nonzero(depth_frame_for_this_window) > 0:
-                # Squeeze, equalize, then reshape back to (H,W,1)
                 squeezed_depth = depth_frame_for_this_window.squeeze().astype(np.uint8)
                 equalized_hist_depth = cv2.equalizeHist(squeezed_depth)
-                
                 x_pixels, y_pixels = np.where(equalized_hist_depth > 0)
                 scaled_values = equalized_hist_depth[x_pixels, y_pixels] / 2 + 50
                 equalized_hist_depth[x_pixels, y_pixels] = np.clip(scaled_values, 0, 255).astype(np.uint8)
                 depth_frame_for_this_window = equalized_hist_depth.reshape((img_height, img_width, 1))
+                # print(f"DEBUG: [Window {window_idx}] RGBD Depth: depth_frame non-zero after eq: ...") # LOOP PRINT - REMOVED
         else:
+            # This error should ideally be caught earlier or handled robustly
+            print(f"ERROR: Unknown representation_mode: {representation_mode}") 
             raise ValueError(f"Unknown representation_mode: {representation_mode}")
 
-        # --- 3. Condition for saving the generated frame ---
-        # Original condition: np.count_nonzero(current_frame) > 100 AND np.count_nonzero(current_frame_den) > 0
-        # AND i_den > current_i_den AND j_den > current_j_den
-        # New interpretation: >100 events in main output frame, >0 events in denoised polarity, and some denoised events processed.
-        
         processed_any_denoised_in_win = (num_den_pos_events_in_win > 0 or num_den_neg_events_in_win > 0)
+        cond1_main_frame_sufficient_events = np.count_nonzero(main_frame_for_this_window) > 100
+        cond2_denoised_frame_has_events = np.count_nonzero(current_denoised_polarity_frame) > 0
+        cond3_processed_any_denoised = processed_any_denoised_in_win
 
-        if np.count_nonzero(main_frame_for_this_window) > 100 and \
-           np.count_nonzero(current_denoised_polarity_frame) > 0 and \
-           processed_any_denoised_in_win:
-            
-            # Call gen_extremities with indices relative to the start of the current window's DENOISED events
-            # The actual arrays x_data_pos_den etc. are passed, with slices defined by current/end indices.
-            # Note: Original gen_extremities took slices from start of arrays; now we need to be careful.
-            # It's safer to pass the actual event coordinates from the current window.
-            
-            # For gen_extremities, we pass the start and end pointers for DENOISED events for *this window*
-            # These pointers (idx_den_pos, end_idx_den_pos_win) are for the full denoised arrays.
+        # print(f"DEBUG: [Window {window_idx}] Save Condition Check:") # LOOP PRINT - REMOVED
+        # print(f"DEBUG:    1. ... -> {cond1_main_frame_sufficient_events}") # LOOP PRINT - REMOVED
+        # print(f"DEBUG:    2. ... -> {cond2_denoised_frame_has_events}") # LOOP PRINT - REMOVED
+        # print(f"DEBUG:    3. ... -> {cond3_processed_any_denoised}") # LOOP PRINT - REMOVED
+        
+        if cond1_main_frame_sufficient_events and cond2_denoised_frame_has_events and cond3_processed_any_denoised:
+            # print(f"DEBUG: [Window {window_idx}] ALL CONDITIONS MET. Saving frame.") # LOOP PRINT - REMOVED
             len_x, len_y, overall_x, overall_y = gen_extremities(
                 x_data_pos_den, y_data_pos_den, x_data_neg_den, y_data_neg_den,
-                idx_den_pos, end_idx_den_pos_win,  # Range of positive denoised events considered for this window
-                idx_den_neg, end_idx_den_neg_win   # Range of negative denoised events
+                temp_idx_den_pos_start_win, end_idx_den_pos_win, 
+                temp_idx_den_neg_start_win, end_idx_den_neg_win 
             )
+            # print(f"DEBUG: [Window {window_idx}] gen_extremities returned: ...") # LOOP PRINT - REMOVED
 
             output_main_frames.append(main_frame_for_this_window)
             output_denoised_polarity_frames.append(current_denoised_polarity_frame)
             output_depth_compatible_frames.append(depth_frame_for_this_window)
-            
             len_arr_x_list.append(len_x)
             len_arr_y_list.append(len_y)
             center_indices_list.append((overall_x, overall_y))
+        # else: # LOOP PRINT - REMOVED
+            # print(f"DEBUG: [Window {window_idx}] CONDITIONS NOT MET. Frame not saved.") # LOOP PRINT - REMOVED
 
-        # Advance DENOISED event pointers to the start of the next potential window
         idx_den_pos = end_idx_den_pos_win
         idx_den_neg = end_idx_den_neg_win
-        
-        current_window_start_time += window_len # Move to the next processing window
+        current_window_start_time += window_len 
+        window_idx += 1
+    # --- END OF MAIN WINDOW LOOP ---
+
+
+    print(f"\nDEBUG: --- End of Window Loop ---") # SUMMARY PRINT
+    print(f"DEBUG: Total windows processed: {window_idx}") # SUMMARY PRINT
+    print(f"DEBUG: Number of output_main_frames generated: {len(output_main_frames)}") # SUMMARY PRINT
 
     if not output_main_frames:
+        print("DEBUG: No frames were generated that met the saving criteria. Returning empty lists.") # SUMMARY PRINT
+        # PAUSE POINT before returning empty
+        input("DEBUG: End of function (no frames generated). Press Enter to exit generate_event_frames_with_fixed_time_window...")
         return [], [], [], 0, 0, [], []
 
-    # --- 4. Cropping (uses output_denoised_polarity_frames for consistent cropping) ---
+    print(f"DEBUG: Calling generate_cropped_frames with {len(len_arr_x_list)} entries for cropping.") # SUMMARY PRINT
     cropped_output_frames, hx_crop, hy_crop, cropping_positions_list = \
         generate_cropped_frames(len_arr_x_list, len_arr_y_list, output_denoised_polarity_frames, center_indices_list)
+    print(f"DEBUG: generate_cropped_frames returned {len(cropped_output_frames)} cropped frames. Crop_half_width (hx_crop)={hx_crop}, Crop_half_height (hy_crop)={hy_crop}") # SUMMARY PRINT
 
-    # Return structure:
-    # 1. frames (main output: RGBD polarity OR TS-based)
-    # 2. frames_denoised (always polarity-based, used for mask placement heuristics by caller)
-    # 3. cropped_frames (cropped versions of frames_denoised)
-    # 4. hx * 2 + 1 (crop width dim)
-    # 5. hy * 2 + 1 (crop height dim)
-    # 6. cropping_positions
-    # 7. time_frames (depth: recency for RGBD OR zeros for TS)
+    final_crop_width = hx_crop * 2 + 1 if hx_crop > 0 else 0 
+    final_crop_height = hy_crop * 2 + 1 if hy_crop > 0 else 0
+    
+    print(f"DEBUG: Final returned crop dims: width={final_crop_width}, height={final_crop_height}") # SUMMARY PRINT
+    print(f"--- generate_event_frames_with_fixed_time_window finished ---") # SUMMARY PRINT
+
+    # PAUSE POINT before returning results
+    input("DEBUG: End of function. Press Enter to exit generate_event_frames_with_fixed_time_window...")
+
+    while True:
+        i = 1
+
     return output_main_frames, output_denoised_polarity_frames, cropped_output_frames, \
-           hx_crop * 2 + 1, hy_crop * 2 + 1, cropping_positions_list, output_depth_compatible_frames
+           final_crop_width, final_crop_height, cropping_positions_list, output_depth_compatible_frames
 
 
 # --- generate_fixed_num_events_frames (Keep as is, or adapt similarly if needed) ---
-# This function has a different windowing logic (based on num events, not time)
-# If you also want to adapt this one for TS, it would require a similar pattern of changes.
-# For now, I'm leaving it as per your original file.
 def generate_fixed_num_events_frames(positive_event_array, negative_event_array, total_frames=20, img_shape=(34, 34)):
     img_height, img_width = img_shape
     x_data_pos, y_data_pos, z_data_pos, time_data_pos = positive_event_array
     x_data_neg, y_data_neg, z_data_neg, time_data_neg = negative_event_array
 
-    # Handle cases where event arrays might be empty or too small
     if len(time_data_pos) == 0 or len(time_data_neg) == 0 or total_frames == 0:
-        return [], [], 0, 0, [], [] # Return empty if no data or no frames to make
+        return [], [], 0, 0, [], [] 
     
-    window_len_pos = max(1, int(len(time_data_pos) / total_frames)) # Ensure at least 1 event
+    window_len_pos = max(1, int(len(time_data_pos) / total_frames)) 
     window_len_neg = max(1, int(len(time_data_neg) / total_frames))
 
     frames, len_arr_x, len_arr_y, center_indices, time_frames_list = [], [], [], [], []
-    i, j = 0, 0
+    i_ptr, j_ptr = 0, 0 # Renamed i, j to avoid conflict with loop iterators if any
 
-    while i < len(time_data_pos) and j < len(time_data_neg):
-        current_i, current_j = i, j
+    while i_ptr < len(time_data_pos) and j_ptr < len(time_data_neg):
+        current_i, current_j = i_ptr, j_ptr
         current_frame = np.zeros((img_height, img_width, 3), np.uint8)
         time_frame_single = np.zeros((img_height, img_width, 1), np.uint8)
 
-        # Positive events for this frame
         end_i = min(len(time_data_pos), current_i + window_len_pos)
         for k_pos in range(current_i, end_i):
             x, y = int(x_data_pos[k_pos]), int(y_data_pos[k_pos])
             if 0 <= y < img_height and 0 <= x < img_width:
                 current_frame[y, x] = (255, 0, 0)   # Blue
-                time_frame_single[y, x, 0] = (k_pos - current_i + 1) # Recency
-        i = end_i
+                time_frame_single[y, x, 0] = (k_pos - current_i + 1) 
+        i_ptr = end_i
         
-        # Negative events for this frame
         end_j = min(len(time_data_neg), current_j + window_len_neg)
         for k_neg in range(current_j, end_j):
             x, y = int(x_data_neg[k_neg]), int(y_data_neg[k_neg])
             if 0 <= y < img_height and 0 <= x < img_width:
                 current_frame[y, x] = (0, 0, 255)   # Red
-                time_frame_single[y, x, 0] = max(time_frame_single[y,x,0], (k_neg - current_j + 1)) # Take max recency
-        j = end_j
+                time_frame_single[y, x, 0] = max(time_frame_single[y,x,0], (k_neg - current_j + 1)) 
+        j_ptr = end_j
         
         if np.count_nonzero(current_frame) > 50:
-            equalized_hist = cv2.equalizeHist(time_frame_single.squeeze().astype(np.uint8))
-            # Original paper's scaling, if desired (apply carefully after equalization)
-            # x_pixels, y_pixels = np.where(equalized_hist > 0)
-            # scaled_values = equalized_hist[x_pixels, y_pixels] / 2 + 50
-            # equalized_hist[x_pixels, y_pixels] = np.clip(scaled_values, 0, 255).astype(np.uint8)
+            squeezed_time_frame = time_frame_single.squeeze().astype(np.uint8)
+            if np.any(squeezed_time_frame): 
+                 equalized_hist = cv2.equalizeHist(squeezed_time_frame)
+            else:
+                 equalized_hist = squeezed_time_frame
             
-            # gen_extremities needs start/end indices for the *current window*
             len_x, len_y, overall_x, overall_y = gen_extremities(
                 x_data_pos, y_data_pos, x_data_neg, y_data_neg, 
-                current_i, i, current_j, j
+                current_i, i_ptr, current_j, j_ptr # Use updated i_ptr, j_ptr for end of window
             )
             frames.append(current_frame)
             len_arr_x.append(len_x)
             len_arr_y.append(len_y)
             center_indices.append((overall_x, overall_y))
-            time_frames_list.append(equalized_hist.reshape(img_height,img_width,1)) # Reshape back
+            time_frames_list.append(equalized_hist.reshape(img_height,img_width,1)) 
 
     if not frames:
         return [], [], 0, 0, [], []
         
     cropped_frames_list, hx, hy, cropping_positions_list = \
         generate_cropped_frames(len_arr_x, len_arr_y, frames, center_indices)
+    
+    final_crop_width = hx * 2 + 1 if hx > 0 else 0
+    final_crop_height = hy * 2 + 1 if hy > 0 else 0
 
-    return frames, cropped_frames_list, hx * 2 + 1, hy * 2 + 1, cropping_positions_list, time_frames_list
-
-
+    return frames, cropped_frames_list, final_crop_width, final_crop_height, cropping_positions_list, time_frames_list
 
 
 
