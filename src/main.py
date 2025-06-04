@@ -5,7 +5,6 @@ from pathlib import Path
 import json
 from torch.utils.data import Subset
 
-
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -26,7 +25,7 @@ SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the sam
 RESULTS_DIR = '../results'
 
 # Aantal samples dat je wil gebruiken
-NUM_SAMPLES = 100
+# NUM_SAMPLES = 6000
 
 if __name__ == '__main__':
 
@@ -34,8 +33,8 @@ if __name__ == '__main__':
     train_dataset = tonic.datasets.NMNIST(save_to='../data', train=True)
     test_dataset = tonic.datasets.NMNIST(save_to='../data', train=False)
 
-    train_dataset = Subset(train_dataset, range(NUM_SAMPLES))
-    test_dataset = Subset(test_dataset, range(NUM_SAMPLES))
+    # train_dataset = Subset(train_dataset, range(NUM_SAMPLES))
+    # test_dataset = Subset(test_dataset, range(NUM_SAMPLES))
 
     # Split into train and test
     split_train_test_validation('../data/NMNIST', '../data/N_MNIST', cleanup=False, train_data_percentage=TRAIN_DATA_PERCENTAGE)
