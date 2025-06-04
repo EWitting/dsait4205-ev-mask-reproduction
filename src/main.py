@@ -23,7 +23,7 @@ TRAIN_DATA_PERCENTAGE = 0.8
 SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
 
-REPRESENTATION_MODE = 'rgbd'  # 'rgbd' or 'ts' (Time Surface)
+REPRESENTATION_MODE = 'rgbd_depth_time_normalized'  # 'rgbd_original' (original from the paper) or 'rgbd_depth_time_normalized' (Depth is calculated by normalizing the passed to time in the window)
 
 if __name__ == '__main__':
 

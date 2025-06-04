@@ -92,9 +92,10 @@ def save_images(chosen_directory, dataset, mask_indices_per_label, mnist_dataset
         if i % skip == 0:
             # print(f'entry: {entry}')
             # print(f'last_saved_index: {last_saved_index}')
+            print(f'\n---------- Processing new entry ----------')
+            print(f'DEBUG: Processing {i}th entry with target {current_target}')
 
             frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs)
-            print(f'Processing {i}th entry with target {target}')
             # print(f'Frames: {len(frames)}, Masks: {len(colorized_masks)}, Time frames: {len(time_frames)}')
             # If we don't want to take all of the images
             # frames, colorized_masks, time_frames = take_less_samples(frames, colorized_masks, time_frames)
@@ -141,10 +142,10 @@ def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cle
 
     (train_X, train_y), (test_X, test_y) = mnist.load_data()
 
-    print(f"Length train_X: {len(train_X)}")
-    print(f"Length train_y: {len(train_y)}")
-    print(f"Length test_X: {len(test_X)}")
-    print(f"Length test_y: {len(test_y)}")
+    # print(f"Length train_X: {len(train_X)}")
+    # print(f"Length train_y: {len(train_y)}")
+    # print(f"Length test_X: {len(test_X)}")
+    # print(f"Length test_y: {len(test_y)}")
 
 
     labels = range(0, 10)
@@ -157,8 +158,8 @@ def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cle
 
 
     print('--------------------------- Validation ---------------------------')
-    print(f"Validation path: {validation_path}")
-    print(f"test dataset length: {len(test_dataset)}")
+    # print(f"Validation path: {validation_path}")
+    # print(f"test dataset length: {len(test_dataset)}")
     # print(f"mask_indices_per_label_test: {mask_indices_per_label_test}")
 
     save_images(validation_path, test_dataset, mask_indices_per_label_test, test_X, **kwargs)
