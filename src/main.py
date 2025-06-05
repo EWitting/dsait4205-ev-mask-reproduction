@@ -17,7 +17,8 @@ TRAIN_CONFIGS = [
     ]
 ]
 MULTIPLE_DIGITS = False
-WINDOW_LENGTHS = [10,20,50]
+# WINDOW_LENGTHS = [10,20,50]
+WINDOW_LENGTHS = [50]
 WINDOW_SKIP = 50
 TRAIN_DATA_PERCENTAGE = 0.8
 SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
