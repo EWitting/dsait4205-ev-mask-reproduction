@@ -378,7 +378,7 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
     Temporal information (time_frames) can be generated in two ways:
     1. 'original': Based on event order, histogram equalization, and offset.
     2. 'actual_time_normalization': Based on actual time since window start, normalized to 0-255.
-       Controlled by `representation_mode` in kwargs.
+       Controlled by `depth_channel_representation_mode` in kwargs.
 
     :param positive_event_array_denoised: Denoised positive events (x, y, z, time_ms).
     :param negative_event_array_denoised: Denoised negative events (x, y, z, time_ms).
@@ -386,15 +386,15 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
     :param negative_event_array: Original (noised) negative events (x, y, z, time_ms).
     :param window_len: Duration (in ms) of the time window for event accumulation.
     :param img_shape: Tuple (height, width) for output frames.
-    :param kwargs: Additional arguments. Expected: `representation_mode` (str, optional, defaults to 'original').
+    :param kwargs: Additional arguments. Expected: `depth_channel_representation_mode` (str, optional, defaults to 'original').
                    Set to 'actual_time_normalization' for the new method.
     :return: Tuple: frames, frames_denoised, cropped_frames, crop_width, crop_height, cropping_positions, time_frames.
     """
-    representation_mode = kwargs.get('representation_mode', 'rgbd_original')
-    print(f"DEBUG: Representation mode: {representation_mode}")
+    depth_channel_representation_mode = kwargs.get('depth_channel_representation_mode', 'original')
+    print(f"DEBUG: Representation mode: {depth_channel_representation_mode}")
     # print(f"\nDEBUG: --- Entering generate_event_frames_with_fixed_time_window ---")
     # print(f"DEBUG: window_len (ms): {window_len}, img_shape: {img_shape}")
-    # print(f"DEBUG: Using representation_mode for temporal frames: {representation_mode}")
+    # print(f"DEBUG: Using depth_channel_representation_mode for temporal frames: {depth_channel_representation_mode}")
 
 
     img_height, img_width = img_shape
@@ -432,12 +432,14 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
         current_frame_noised = np.zeros((img_height, img_width, 3), np.uint8)
         current_frame_denoised_rgb = np.zeros((img_height, img_width, 3), np.uint8)
 
-        # Initialize raw temporal data storage based on representation_mode
-        if representation_mode == 'rgbd_depth_time_normalized':
+        # Initialize raw temporal data storage based on depth_channel_representation_mode
+        if depth_channel_representation_mode == 'window_time_normalized':
             # Stores actual time deltas from window start [0, window_len-1]
             # Initialize with -1.0 to mark pixels with no events
             raw_temporal_data = np.full((img_height, img_width), -1.0, dtype=np.float32)
-        elif representation_mode == 'rgbd_original': # original
+        elif depth_channel_representation_mode == 'zeros':
+            raw_temporal_data = np.zeros((img_height, img_width), np.uint8)
+        elif depth_channel_representation_mode == 'original': # original
             # Stores event order within the window, modulo 255
             raw_temporal_data = np.zeros((img_height, img_width), np.uint8)
 
@@ -465,10 +467,10 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
             event_actual_time_ms = time_data_pos[i]
             if 0 <= y < img_height and 0 <= x < img_width:
                 current_frame_noised[y][x] = (255, 0, 0)
-                if representation_mode == 'rgbd_depth_time_normalized':
+                if depth_channel_representation_mode == 'window_time_normalized':
                     delta_t = float(event_actual_time_ms - current_time)
                     raw_temporal_data[y, x] = max(raw_temporal_data[y, x], delta_t)
-                elif representation_mode == 'rgbd_original': # original
+                elif depth_channel_representation_mode == 'original': # original
                     raw_temporal_data[y, x] = max(raw_temporal_data[y, x], ((i - current_i + 1) % 255))
             i += 1
             num_pos_orig_in_window += 1
@@ -479,16 +481,16 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
             event_actual_time_ms = time_data_neg[j]
             if 0 <= y < img_height and 0 <= x < img_width:
                 current_frame_noised[y][x] = (0, 0, 255)
-                if representation_mode == 'rgbd_depth_time_normalized':
+                if depth_channel_representation_mode == 'window_time_normalized':
                     delta_t = float(event_actual_time_ms - current_time)
                     raw_temporal_data[y, x] = max(raw_temporal_data[y, x], delta_t)
-                elif representation_mode == 'rgbd_original': # original
+                elif depth_channel_representation_mode == 'original': # original
                     raw_temporal_data[y, x] = max(raw_temporal_data[y, x], ((j - current_j + 1) % 255))
             j += 1
             num_neg_orig_in_window += 1
 
         # --- Post-process raw_temporal_data to create the final_time_frame ---
-        if representation_mode == 'rgbd_depth_time_normalized':
+        if depth_channel_representation_mode == 'window_time_normalized':
             processed_temporal_frame = np.zeros((img_height, img_width), dtype=np.uint8)
             # Pixels with events have raw_temporal_data >= 0
             active_mask = raw_temporal_data >= 0.0
@@ -509,7 +511,9 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
                 processed_temporal_frame[active_mask] = np.clip(normalized_active_values, 0, 255).astype(np.uint8)
             
             final_time_frame = processed_temporal_frame.reshape((img_height, img_width, 1))
-        elif representation_mode == 'rgbd_original': # 'original' mode post-processing
+        elif depth_channel_representation_mode == 'zeros':
+            final_time_frame = raw_temporal_data
+        elif depth_channel_representation_mode == 'original': # 'original' mode post-processing
             # Ensure raw_temporal_data is uint8 for equalizeHist
             event_order_raw_uint8 = raw_temporal_data.astype(np.uint8)
             if np.any(event_order_raw_uint8 > 0):
@@ -549,7 +553,7 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
                 # print_array_summary("  final_time_frame (temporal map)", final_time_frame)
                 # print(f"DEBUG:   Calculated extremities from denoised: len_x={len_x}, len_y={len_y}, center=({overall_x},{overall_y})")
                 # if raw_temporal_data.size > 0:
-                    #  print_array_summary(f"  Raw temporal data (mode: {representation_mode})", raw_temporal_data)
+                    #  print_array_summary(f"  Raw temporal data (mode: {depth_channel_representation_mode})", raw_temporal_data)
                 first_valid_frame_logged = True
         
     # --- Loop Summary ---
