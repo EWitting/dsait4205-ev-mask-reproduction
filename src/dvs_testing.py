@@ -73,10 +73,31 @@ def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0)
         APs.append(ap)
         ACCs.append(accuracy)
 
+    num_samples = len(image_ids)
+
     results = {
-        'AP': np.mean(APs),
-        'IoU': np.mean(IoUs),
-        'Accuracy': np.mean(ACCs)
+        'AP': {
+            'mean': np.mean(APs) if num_samples > 0 else 0.0,
+            'std': np.std(APs) if num_samples > 1 else 0.0,
+            'var': np.var(APs) if num_samples > 1 else 0.0,
+            'min': np.min(APs) if num_samples > 1 else 0.0,
+            'max': np.max(APs) if num_samples > 1 else 0.0,
+        },
+        'IoU': { # This is the mean of (per-image mean IoUs)
+            'mean': np.mean(IoUs) if num_samples > 0 else 0.0,
+            'std': np.std(IoUs) if num_samples > 1 else 0.0,
+            'var': np.var(IoUs) if num_samples > 1 else 0.0,
+            'min': np.min(IoUs) if num_samples > 1 else 0.0,
+            'max': np.max(IoUs) if num_samples > 1 else 0.0,
+        },
+        'Accuracy': {
+            'mean': np.mean(ACCs) if num_samples > 0 else 0.0,
+            'std': np.std(ACCs) if num_samples > 1 else 0.0,
+            'var': np.var(ACCs) if num_samples > 1 else 0.0,
+            'min': np.min(ACCs) if num_samples > 1 else 0.0,
+            'max': np.max(ACCs) if num_samples > 1 else 0.0,
+        },
+        'number_of_samples': num_samples,
     }
     for metric, value in results.items():
         print(f"{metric}: {value}")
