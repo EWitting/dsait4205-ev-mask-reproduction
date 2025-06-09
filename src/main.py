@@ -55,7 +55,7 @@ if __name__ == '__main__':
                 # Save results
                 os.makedirs(RESULTS_DIR, exist_ok=True)
                 model_name = Path(model_path).stem
-                with open(f'{RESULTS_DIR}/{model_name}.json', 'w') as f:
+                with open(f'{RESULTS_DIR}/{model_name}_run{i}.json', 'w') as f:
                     results['window_len'] = window_len
                     results['train_config'] = train_config
                     results['multiple_digits'] = MULTIPLE_DIGITS
