@@ -3,6 +3,7 @@ import numpy as np
 from src.my_label_generation import *
 import random
 from keras.datasets import mnist
+from tqdm import tqdm
 
 
 def split_train_test_validation(input_path, output_path, cleanup=False, train_data_percentage=0.8):
@@ -83,7 +84,7 @@ def save_images(chosen_directory, dataset, mask_indices_per_label, mnist_dataset
 
     skip = kwargs.get('skip', 1000)
 
-    for i, entry in enumerate(dataset):
+    for i, entry in tqdm(enumerate(dataset), total=len(dataset), desc='Saving images'):
         _, current_target = entry
         if current_target != last_saved_target:
             last_saved_index = i
@@ -92,8 +93,8 @@ def save_images(chosen_directory, dataset, mask_indices_per_label, mnist_dataset
         if i % skip == 0:
             # print(f'entry: {entry}')
             # print(f'last_saved_index: {last_saved_index}')
-            print(f'\n---------- Processing new entry ----------')
-            print(f'DEBUG: Processing {i}th entry with target {current_target}')
+            # print(f'\n---------- Processing new entry ----------')
+            # print(f'DEBUG: Processing {i}th entry with target {current_target}')
 
             frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs)
             # print(f'Frames: {len(frames)}, Masks: {len(colorized_masks)}, Time frames: {len(time_frames)}')
