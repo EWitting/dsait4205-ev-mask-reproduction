@@ -45,8 +45,8 @@ if __name__ == '__main__':
             path = f'../data/N_MNIST_images_{window_len}ms_skip_{WINDOW_SKIP}_run_{i}'
             generate_rgbd_images_and_masks(train_dataset, test_dataset, path, cleanup=True, window_len=window_len, skip=WINDOW_SKIP, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE)
 
-        print(f'Training models for {window_len}ms')
-        for train_config in TRAIN_CONFIGS:
+            print(f'Training models for {window_len}ms')
+            for train_config in TRAIN_CONFIGS:
                 model_path = train_model(path, train_config, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
 
                 print('Evaluating model')
