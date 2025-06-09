@@ -104,5 +104,5 @@ def train_model(data_path, fit_params, depth_channel_representation_mode, multip
         # Run inference to visualize some results
         inference_model = modellib.MaskRCNN(mode="inference", config=inference_config, model_dir=MODEL_DIR)
         inference_model.load_weights(model_path, by_name=True)
-        show_test_samples(inference_model, dataset_testing, n=visualize_num)
+        show_model_pred_samples(inference_model, dataset_testing, n=visualize_num)
     return model_path

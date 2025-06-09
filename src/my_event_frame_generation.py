@@ -390,8 +390,8 @@ def generate_event_frames_with_fixed_time_window(positive_event_array_denoised, 
                    Set to 'actual_time_normalization' for the new method.
     :return: Tuple: frames, frames_denoised, cropped_frames, crop_width, crop_height, cropping_positions, time_frames.
     """
-    depth_channel_representation_mode = kwargs.get('depth_channel_representation_mode', 'original')
-    print(f"DEBUG: Representation mode: {depth_channel_representation_mode}")
+    # depth_channel_representation_mode = kwargs.get('depth_channel_representation_mode', 'original')
+    # print(f"DEBUG: Representation mode: {depth_channel_representation_mode}")
     # print(f"\nDEBUG: --- Entering generate_event_frames_with_fixed_time_window ---")
     # print(f"DEBUG: window_len (ms): {window_len}, img_shape: {img_shape}")
     # print(f"DEBUG: Using depth_channel_representation_mode for temporal frames: {depth_channel_representation_mode}")
