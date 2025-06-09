@@ -3,6 +3,7 @@ import numpy as np
 from src.my_label_generation import *
 import random
 from keras.datasets import mnist
+from tqdm import tqdm
 
 
 def split_train_test_validation(input_path, output_path, cleanup=False, train_data_percentage=0.8):
@@ -83,15 +84,20 @@ def save_images(chosen_directory, dataset, mask_indices_per_label, mnist_dataset
 
     skip = kwargs.get('skip', 1000)
 
-    for i, entry in enumerate(dataset):
+    for i, entry in tqdm(enumerate(dataset), total=len(dataset), desc='Saving images'):
         _, current_target = entry
         if current_target != last_saved_target:
             last_saved_index = i
             last_saved_target = current_target
 
         if i % skip == 0:
-            frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs)
+            # print(f'entry: {entry}')
+            # print(f'last_saved_index: {last_saved_index}')
+            # print(f'\n---------- Processing new entry ----------')
+            # print(f'DEBUG: Processing {i}th entry with target {current_target}')
 
+            frames, colorized_masks, target, time_frames = generate_masks(entry, i, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs)
+            # print(f'Frames: {len(frames)}, Masks: {len(colorized_masks)}, Time frames: {len(time_frames)}')
             # If we don't want to take all of the images
             # frames, colorized_masks, time_frames = take_less_samples(frames, colorized_masks, time_frames)
 
@@ -137,6 +143,12 @@ def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cle
 
     (train_X, train_y), (test_X, test_y) = mnist.load_data()
 
+    # print(f"Length train_X: {len(train_X)}")
+    # print(f"Length train_y: {len(train_y)}")
+    # print(f"Length test_X: {len(test_X)}")
+    # print(f"Length test_y: {len(test_y)}")
+
+
     labels = range(0, 10)
     mask_indices_per_label_train, mask_indices_per_label_test = [], []
     for label in labels:
@@ -145,7 +157,12 @@ def generate_rgbd_images_and_masks(train_dataset, test_dataset, output_path, cle
         indices_with_this_label_test = np.where(test_y == label)
         mask_indices_per_label_test.append(indices_with_this_label_test)
 
+
     print('--------------------------- Validation ---------------------------')
+    # print(f"Validation path: {validation_path}")
+    # print(f"test dataset length: {len(test_dataset)}")
+    # print(f"mask_indices_per_label_test: {mask_indices_per_label_test}")
+
     save_images(validation_path, test_dataset, mask_indices_per_label_test, test_X, **kwargs)
     print('--------------------------- Train&Test ---------------------------')
     save_images(training_path, train_dataset, mask_indices_per_label_train, train_X, train_data_percentage=0.8, secondary_chosen_directory=testing_path, **kwargs)

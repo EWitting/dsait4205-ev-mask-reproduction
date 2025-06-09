@@ -9,7 +9,7 @@ inference_config = InferenceConfig()
 config = DvsConfig()
 config.display()
 
-def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0):
+def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0, depth_channel_representation_mode="original"):
 
     # Testing dataset
     dataset_validation = RGBDDatasetMultiple() if multiple_digits else RGBDDataset()
@@ -98,6 +98,7 @@ def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0)
             'max': np.max(ACCs) if num_samples > 1 else 0.0,
         },
         'number_of_samples': num_samples,
+        'depth_channel_representation_mode': depth_channel_representation_mode,
     }
     for metric, value in results.items():
         print(f"{metric}: {value}")

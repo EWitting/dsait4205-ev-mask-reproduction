@@ -21,44 +21,45 @@ MULTIPLE_DIGITS = True
 WINDOW_LENGTHS = [10,20,50]
 WINDOW_SKIP = 50
 TRAIN_DATA_PERCENTAGE = 0.8
+N_EXPERIMENT_RUNS = 5 # Number of times to rerun the experiment
 SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
 
-# Aantal samples dat je wil gebruiken
-# NUM_SAMPLES = 6000
+DEPTH_CHANNEL_REPRESENTATION_MODE = 'window_time_normalized'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
 
 if __name__ == '__main__':
 
-    # Download Neuromorphic MNIST dataset
-    train_dataset = tonic.datasets.NMNIST(save_to='../data', train=True)
-    test_dataset = tonic.datasets.NMNIST(save_to='../data', train=False)
+    if not os.path.exists('../data/NMINST'):
+        # Download Neuromorphic MNIST dataset
+        train_dataset = tonic.datasets.NMNIST(save_to='../data', train=True)
+        test_dataset = tonic.datasets.NMNIST(save_to='../data', train=False)
 
-    # train_dataset = Subset(train_dataset, range(NUM_SAMPLES))
-    # test_dataset = Subset(test_dataset, range(NUM_SAMPLES))
+    for i in range(N_EXPERIMENT_RUNS):
 
-    # Split into train and test
-    split_train_test_validation('../data/NMNIST', '../data/N_MNIST', cleanup=False, train_data_percentage=TRAIN_DATA_PERCENTAGE)
+        if not os.path.exists('../data/N_MNIST') or N_EXPERIMENT_RUNS > 1:
+            # Split into train and test, ensure that new split is made every run
+            split_train_test_validation('../data/NMNIST', '../data/N_MNIST', cleanup=N_EXPERIMENT_RUNS > 1, train_data_percentage=TRAIN_DATA_PERCENTAGE)
 
-    # Generate RGB-D images and masks
-    for window_len in WINDOW_LENGTHS:
-        print(f'Generating RGB-D images and masks for {window_len}ms')
-        path = f'../data/N_MNIST_images_{window_len}ms_skip_{WINDOW_SKIP}'
-        generate_rgbd_images_and_masks(train_dataset, test_dataset, path, cleanup=False, window_len=window_len, skip=WINDOW_SKIP)
+        # Generate RGB-D images and masks
+        for window_len in WINDOW_LENGTHS:
+            print(f'Generating RGB-D images and masks for {window_len}ms')
+            path = f'../data/N_MNIST_images_{window_len}ms_skip_{WINDOW_SKIP}_run_{i}'
+            generate_rgbd_images_and_masks(train_dataset, test_dataset, path, cleanup=True, window_len=window_len, skip=WINDOW_SKIP, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE)
 
-        print(f'Training models for {window_len}ms')
-        for train_config in TRAIN_CONFIGS:
-            model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
+            print(f'Training models for {window_len}ms')
+            for train_config in TRAIN_CONFIGS:
+                model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
 
-            print('Evaluating model')
-            results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=0)
+                print('Evaluating model')
+                results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=0, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE)
 
-            # Save results
-            os.makedirs(RESULTS_DIR, exist_ok=True)
-            model_name = Path(model_path).stem
-            with open(f'{RESULTS_DIR}/{model_name}.json', 'w') as f:
-                results['window_len'] = window_len
-                results['train_config'] = train_config
-                results['multiple_digits'] = MULTIPLE_DIGITS
-                results['model_path'] = model_path
-                json.dump(results, f)
-            print(f'Results saved to {RESULTS_DIR}/{model_name}.json')
+                # Save results
+                os.makedirs(RESULTS_DIR, exist_ok=True)
+                model_name = Path(model_path).stem
+                with open(f'{RESULTS_DIR}/{model_name}.json', 'w') as f:
+                    results['window_len'] = window_len
+                    results['train_config'] = train_config
+                    results['multiple_digits'] = MULTIPLE_DIGITS
+                    results['model_path'] = model_path
+                    json.dump(results, f)
+                print(f'Results saved to {RESULTS_DIR}/{model_name}.json')
