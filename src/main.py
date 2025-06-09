@@ -24,7 +24,7 @@ TRAIN_DATA_PERCENTAGE = 0.8
 SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
 
-DEPTH_CHANNEL_REPRESENTATION_MODE = 'window_time_normalized'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
+DEPTH_CHANNEL_REPRESENTATION_MODE = 'zeros'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
 
 if __name__ == '__main__':
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
         print(f'Training models for {window_len}ms')
         for train_config in TRAIN_CONFIGS:
-            model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
+            model_path = train_model(path, train_config, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
 
             print('Evaluating model')
             results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=0, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE)
