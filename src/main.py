@@ -21,7 +21,7 @@ WINDOW_LENGTHS = [10,20,50]
 WINDOW_SKIP = 50
 TRAIN_DATA_PERCENTAGE = 0.8
 N_EXPERIMENT_RUNS = 5 # Number of times to rerun the experiment
-SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
+SKIP_IF_EXISTS = False  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
 
 DEPTH_CHANNEL_REPRESENTATION_MODE = 'zeros'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
