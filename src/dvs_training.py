@@ -48,7 +48,7 @@ def load_weights(model, pretrained_weights):
     else:
         print('Not loading any weights!')
 
-def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights='coco', skip_if_exists=False, visualize_num=0):
+def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights='coco', skip_if_exists=False, visualize_num=0, offset=0):
     """Train the model with the given fit parameters. Model is saved under name based on the data path and fit parameters, and whether multiple digits are used.
     
     :data_path: Path to the data
@@ -73,12 +73,12 @@ def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights
 
     # Training dataset
     dataset_train = dataset_class()
-    dataset_train.load(data_path, 'training')
+    dataset_train.load(data_path, 'training', offset=offset)
     dataset_train.prepare()
 
     # Validation dataset
     dataset_testing = dataset_class()
-    dataset_testing.load(data_path, 'testing')
+    dataset_testing.load(data_path, 'testing', offset=offset)
     dataset_testing.prepare()
 
     # Load and display random samples

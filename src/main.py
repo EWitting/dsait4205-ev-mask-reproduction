@@ -1,3 +1,6 @@
+import gc
+
+import torch
 from src.my_data_generation import *
 from src.dvs_training import train_model
 from src.dvs_testing import test_model
@@ -21,11 +24,14 @@ MULTIPLE_DIGITS = True
 WINDOW_LENGTHS = [10,20,50]
 WINDOW_SKIP = 50
 TRAIN_DATA_PERCENTAGE = 0.8
-N_EXPERIMENT_RUNS = 5 # Number of times to rerun the experiment
-SKIP_IF_EXISTS = True  # Skips retraining model if it already exists for the same combination of dataset and parameters
+N_EXPERIMENT_RUNS = 1 # Number of times to rerun the experiment
+SKIP_IF_EXISTS = False  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
+OFFSET = 8
 
-DEPTH_CHANNEL_REPRESENTATION_MODE = 'window_time_normalized'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
+NUM_SAMPLES_PER_CLASS = 10  # Number of samples per class to use for training and testing
+
+DEPTH_CHANNEL_REPRESENTATION_MODE = 'original'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
 
 if __name__ == '__main__':
 
@@ -33,6 +39,10 @@ if __name__ == '__main__':
         # Download Neuromorphic MNIST dataset
         train_dataset = tonic.datasets.NMNIST(save_to='../data', train=True)
         test_dataset = tonic.datasets.NMNIST(save_to='../data', train=False)
+        
+        # train_dataset = Subset(train_dataset, range(0, NUM_SAMPLES_PER_CLASS * 10))  
+        # test_dataset = Subset(test_dataset, range(0, NUM_SAMPLES_PER_CLASS * 10))
+
 
     for i in range(N_EXPERIMENT_RUNS):
 
@@ -48,18 +58,20 @@ if __name__ == '__main__':
 
             print(f'Training models for {window_len}ms')
             for train_config in TRAIN_CONFIGS:
-                model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0)
+                model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0, offset=OFFSET)
 
                 print('Evaluating model')
-                results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=0, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE)
+                results = test_model(model_path, path, multiple_digits=MULTIPLE_DIGITS, visualize_num=0, depth_channel_representation_mode=DEPTH_CHANNEL_REPRESENTATION_MODE, offset=OFFSET)
 
                 # Save results
                 os.makedirs(RESULTS_DIR, exist_ok=True)
                 model_name = Path(model_path).stem
-                with open(f'{RESULTS_DIR}/{model_name}.json', 'w') as f:
+                with open(f'{RESULTS_DIR}/{model_name}_run{i}.json', 'w') as f:
                     results['window_len'] = window_len
                     results['train_config'] = train_config
                     results['multiple_digits'] = MULTIPLE_DIGITS
                     results['model_path'] = model_path
                     json.dump(results, f)
-                print(f'Results saved to {RESULTS_DIR}/{model_name}.json')
+                print(f'Results saved to {RESULTS_DIR}/{model_name}_run{i}.json')
+                gc.collect()  # Collect garbage to free memory after each run
+                torch.cuda.empty_cache()

@@ -90,11 +90,10 @@ class RGBDDatasetMultiple(ObjectsDataset):
 
         return new_frame_path, new_depth_path, new_mask_path, targets
 
-    def generate_actual_frames(self, new_frame_path, new_depth_path, new_mask_path):
+    def generate_actual_frames(self, new_frame_path, new_depth_path, new_mask_path, offset=0):
         # Locations for 4 digits of 34x34 in 64x64 images
-        offset = 0
+        # print(offset)
         corner_0 = (random.randint(0, offset), random.randint(0, offset))
-        print(corner_0)
         corner_1 = (random.randint(0, offset), 32 - random.randint(0, offset))
         corner_2 = (32 - random.randint(0, offset), random.randint(0, offset))
         corner_3 = (32 - random.randint(0, offset), 32 - random.randint(0, offset))
@@ -135,10 +134,12 @@ class RGBDDatasetMultiple(ObjectsDataset):
 
             # Tweaks the values of the red channel, so we have different colors for each mask
             partial_mask = np.zeros((h - 2, w - 2))
+            partial_mask_temp = np.zeros((h - 2, w - 2))
             xs, ys = np.where(mask[1:h - 1, 1:w - 1, 2] > 0)
             partial_mask[xs, ys] = d / 4 * 255
+            partial_mask_temp[xs, ys] = (d + 1) / 4 * 255
             new_mask[y0:y1, x0:x1, 1] = np.where(
-                partial_mask > 0,
+                partial_mask_temp > 0,
                 partial_mask,
                 new_mask[y0:y1, x0:x1, 1]
             )
@@ -155,7 +156,7 @@ class RGBDDatasetMultiple(ObjectsDataset):
     
     
 
-    def load(self, dataset_dir, subset, skip=1):
+    def load(self, dataset_dir, subset, skip=1, offset=0):
         assert (subset == 'training' or subset == 'validation' or subset == 'testing')
 
         multiple_digits_dataset = dataset_dir + '_multiple'
@@ -199,7 +200,7 @@ class RGBDDatasetMultiple(ObjectsDataset):
                     self.generate_new_frame_paths(multiple_digits_dataset_folder)
 
                 if self.REGENERATE:
-                    self.generate_actual_frames(new_frame_path, new_depth_path, new_mask_path)
+                    self.generate_actual_frames(new_frame_path, new_depth_path, new_mask_path, offset)
 
                 self.add_image(
                     NAME,
@@ -255,7 +256,7 @@ class RGBDDatasetMultiple(ObjectsDataset):
         # mask_path = self.image_info[image_id]['mask_path']
         # img = cv2.imread(mask_path, -1)
 
-        # https://github.com/alexsax/2D-3D-Semantics/blob/master/assets/utils.py
+        # # https://github.com/alexsax/2D-3D-Semantics/blob/master/assets/utils.py
         # R = img[:, :, 0]
         # G = img[:, :, 1]
         # B = img[:, :, 2]
@@ -306,6 +307,7 @@ class RGBDDatasetMultiple(ObjectsDataset):
         masks = np.stack(masks, axis=-1)
 
         class_ids = np.array([0] + targets, dtype=np.int32)
+        print("Class IDs:", class_ids)
         return masks, class_ids
 
 

@@ -166,7 +166,6 @@ if __name__ == '__main__':
         image = dataset.load_image(image_id)
         mask, class_ids = dataset.load_mask(image_id)
         print(dataset.class_names)
-        print(class_ids)
         visualize.display_top_masks(image, mask, class_ids, dataset.class_names, limit=2)
 #     print(dataset.image_ids)
 #     # masks, class_ids = dataset.load_mask(0)

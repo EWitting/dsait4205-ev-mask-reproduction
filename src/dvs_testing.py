@@ -9,11 +9,11 @@ inference_config = InferenceConfig()
 config = DvsConfig()
 config.display()
 
-def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0, depth_channel_representation_mode="original"):
+def test_model(model_path, dataset_path, multiple_digits=False, visualize_num=0, depth_channel_representation_mode="original", offset=0):
 
     # Testing dataset
     dataset_validation = RGBDDatasetMultiple() if multiple_digits else RGBDDataset()
-    dataset_validation.load(dataset_path, 'validation')
+    dataset_validation.load(dataset_path, 'validation', offset=offset)
     dataset_validation.prepare()
 
     # Recreate the model in inference mode
