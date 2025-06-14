@@ -7,6 +7,8 @@ from src.dvs_testing import test_model
 from pathlib import Path
 import json
 from torch.utils.data import Subset
+from tensorflow.keras import backend as K
+
 
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
@@ -21,15 +23,15 @@ TRAIN_CONFIGS = [
     ]
 ]
 MULTIPLE_DIGITS = True
-WINDOW_LENGTHS = [10,20,50]
+WINDOW_LENGTHS = [10, 20,50]
 WINDOW_SKIP = 50
 TRAIN_DATA_PERCENTAGE = 0.8
-N_EXPERIMENT_RUNS = 1 # Number of times to rerun the experiment
+N_EXPERIMENT_RUNS = 4 # Number of times to rerun the experiment
 SKIP_IF_EXISTS = False  # Skips retraining model if it already exists for the same combination of dataset and parameters
 RESULTS_DIR = '../results'
-OFFSET = 8
+OFFSET = 0
 
-NUM_SAMPLES_PER_CLASS = 10  # Number of samples per class to use for training and testing
+# NUM_SAMPLES_PER_CLASS = 10  # Number of samples per class to use for training and testing
 
 DEPTH_CHANNEL_REPRESENTATION_MODE = 'original'  # 'original' (original from the paper) or 'window_time_normalized' (depth is calculated by normalizing the passed to time in the window) or 'zeros' (depth channel only has zero values)
 
@@ -58,6 +60,17 @@ if __name__ == '__main__':
 
             print(f'Training models for {window_len}ms')
             for train_config in TRAIN_CONFIGS:
+                print("Clearing Keras session to release GPU memory...")
+                K.clear_session()
+
+                print("Running garbage collection...")
+                gc.collect()
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    print("PyTorch CUDA cache cleared (for demonstration - no impact on TensorFlow).")
+                
+                print("Memory cleared.")
                 model_path = train_model(path, train_config, multiple_digits=MULTIPLE_DIGITS, skip_if_exists=SKIP_IF_EXISTS, visualize_num=0, offset=OFFSET)
 
                 print('Evaluating model')
@@ -73,5 +86,3 @@ if __name__ == '__main__':
                     results['model_path'] = model_path
                     json.dump(results, f)
                 print(f'Results saved to {RESULTS_DIR}/{model_name}_run{i}.json')
-                gc.collect()  # Collect garbage to free memory after each run
-                torch.cuda.empty_cache()

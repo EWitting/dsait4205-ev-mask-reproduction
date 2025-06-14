@@ -280,34 +280,30 @@ class RGBDDatasetMultiple(ObjectsDataset):
         info  = self.image_info[image_id]
         img   = cv2.imread(info['mask_path'], cv2.IMREAD_UNCHANGED)
 
-        # RGB → uniek instance-ID-getal
         R, G, B = img[:, :, 0].astype(np.int32), img[:, :, 1].astype(np.int32), img[:, :, 2].astype(np.int32)
         encoded = R * 256 * 256 + G * 256 + B
 
-        # object-instances (0 = achtergrond)
         instance_ids = np.unique(encoded)
-        instance_ids = instance_ids[instance_ids != 0]          # alleen objecten
+        instance_ids = instance_ids[instance_ids != 0]     
 
-        # maak voor elk zichtbaar object een mask
         vis_masks = [(encoded == iid).astype(np.uint8) for iid in instance_ids]
 
-        targets      = [t + 1 for t in info['targets']]         # 1-based labels
-        n_expected   = len(targets)                             # zoveel objecten verwachten we
-        n_missing    = n_expected - len(vis_masks)              # hoeveel zijn onzichtbaar?
+        targets      = [t + 1 for t in info['targets']]      
+        n_expected   = len(targets)                          
+        n_missing    = n_expected - len(vis_masks)           
 
-        if n_missing > 0:                                       # opvullen met lege masks
+        if n_missing > 0:                                   
             h, w = encoded.shape
             vis_masks.extend([np.zeros((h, w), np.uint8)] * n_missing)
-        elif n_missing < 0:                                     # zeldzaam: te veel instances
+        elif n_missing < 0:                                
             vis_masks = vis_masks[:n_expected]
 
-        # prepend achtergrondkanaal (ook all-zero)
         h, w = encoded.shape
-        masks = [np.zeros((h, w), np.uint8)] + vis_masks        # [background, obj1, obj2, …]
+        masks = [np.zeros((h, w), np.uint8)] + vis_masks  
         masks = np.stack(masks, axis=-1)
 
         class_ids = np.array([0] + targets, dtype=np.int32)
-        print("Class IDs:", class_ids)
+        # print("Class IDs:", class_ids)
         return masks, class_ids
 
 
