@@ -1,0 +1,10 @@
+window_len,train_config,multiple_digits,depth_channel_representation_mode,Accuracy,IoU,AP,n
+10,"[{'epochs': 5, 'learning_rate': 0.001, 'layers': 'heads'}, {'epochs': 10, 'learning_rate': 0.0001, 'layers': 'all'}]",True,original,0.9526 ± 0.0012,0.5374 ± 0.0178,0.7179 ± 0.0263,4
+10,"{'epochs': 2, 'learning_rate': 0.001, 'layers': 'heads'}",True,original,0.9529 ± 0.0020,0.2555 ± 0.0314,0.4619 ± 0.0487,4
+10,"{'epochs': 5, 'learning_rate': 0.001, 'layers': 'heads'}",True,original,0.9548 ± 0.0005,0.3539 ± 0.0466,0.5485 ± 0.0549,4
+20,"[{'epochs': 5, 'learning_rate': 0.001, 'layers': 'heads'}, {'epochs': 10, 'learning_rate': 0.0001, 'layers': 'all'}]",True,original,0.9569 ± 0.0011,0.5578 ± 0.0156,0.7555 ± 0.0283,4
+20,"{'epochs': 2, 'learning_rate': 0.001, 'layers': 'heads'}",True,original,0.9574 ± 0.0012,0.1683 ± 0.0199,0.3495 ± 0.0249,4
+20,"{'epochs': 5, 'learning_rate': 0.001, 'layers': 'heads'}",True,original,0.9567 ± 0.0019,0.3503 ± 0.0419,0.5350 ± 0.0617,4
+50,"[{'epochs': 5, 'learning_rate': 0.001, 'layers': 'heads'}, {'epochs': 10, 'learning_rate': 0.0001, 'layers': 'all'}]",True,original,0.9592 ± 0.0004,0.5573 ± 0.0161,0.7868 ± 0.0227,4
+50,"{'epochs': 2, 'learning_rate': 0.001, 'layers': 'heads'}",True,original,0.9582 ± 0.0037,0.1786 ± 0.0747,0.4073 ± 0.0528,4
+50,"{'epochs': 5, 'learning_rate': 0.001, 'layers': 'heads'}",True,original,0.9597 ± 0.0030,0.3153 ± 0.0237,0.5390 ± 0.0183,4
