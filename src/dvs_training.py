@@ -48,7 +48,7 @@ def load_weights(model, pretrained_weights):
     else:
         print('Not loading any weights!')
 
-def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights='coco', skip_if_exists=False, visualize_num=0, offset=0):
+def train_model(data_path, fit_params, depth_channel_representation_mode, multiple_digits=False, pretrained_weights='coco', skip_if_exists=False, visualize_num=0, offset=0):
     """Train the model with the given fit parameters. Model is saved under name based on the data path and fit parameters, and whether multiple digits are used.
     
     :data_path: Path to the data
@@ -61,7 +61,7 @@ def train_model(data_path, fit_params, multiple_digits=False, pretrained_weights
     Returns:
     :model_path: Path to the model
     """
-    model_string = f'mask_rcnn_dvs_{obj_to_hash(data_path)}_{obj_to_hash(fit_params)}'
+    model_string = f'mask_rcnn_dvs_{obj_to_hash(data_path)}_{obj_to_hash(fit_params)}_{obj_to_hash(depth_channel_representation_mode)}'
     if multiple_digits:
         model_string += '_multi'
     model_path = os.path.join(MODEL_DIR, f'{model_string}.h5')
