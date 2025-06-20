@@ -1,0 +1,32 @@
+{
+    "AP": {
+        "mean": 0.44463683611310617,
+        "std": 0.18923521868876994,
+        "var": 0.03580996799218658,
+        "min": 0.0,
+        "max": 0.800000011920929
+    },
+    "IoU": {
+        "mean": 0.2537647564423497,
+        "std": 0.11757567312716807,
+        "var": 0.013824038911306671,
+        "min": 0.0,
+        "max": 0.6228049993515015
+    },
+    "Accuracy": {
+        "mean": 0.9582748413085938,
+        "std": 0.016974923051482706,
+        "var": 0.00028814801260375897,
+        "min": 0.895263671875,
+        "max": 0.99462890625
+    },
+    "number_of_samples": 1184,
+    "window_len": 50,
+    "train_config": {
+        "epochs": 5,
+        "learning_rate": 0.001,
+        "layers": "heads"
+    },
+    "multiple_digits": true,
+    "model_path": "C:\\Users\\SID-DRW\\CSE Master\\FunMDL\\dsait4205-ev-mask-reproduction\\model\\mask_rcnn_dvs_e54713ba_2612eea4_multi.h5"
+}

@@ -2,7 +2,6 @@
 .vscode
 
 *.pyc
-results/
 #data/
 temp_data/
 
