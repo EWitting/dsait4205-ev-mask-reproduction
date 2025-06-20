@@ -120,31 +120,25 @@ def place_mask(mask, frame, y0, y1, x0, x1):
     return y0_mx, y1_mx, x0_mx, x1_mx, mx_score
 
 
-def generate_masks(dataset_entry, index, last_saved_index, mask_indices_per_label, mnist_dataset):
+def generate_masks(dataset_entry, index, last_saved_index, mask_indices_per_label, mnist_dataset, **kwargs):
     global mask_scores
     my_events, target = dataset_entry
-    print("Target:", target)
+    # print("DEBUG: Target:", target)
+    # print(f"DEBUG: Length my_events: {len(my_events)}")
 
     positive_event_array = generate_event_arrays(my_events, 1)
     negative_event_array = generate_event_arrays(my_events, 0)
 
     denoise_transform = tonic.transforms.Denoise(filter_time=5000)
     events_denoised = denoise_transform(my_events)
-    # events_denoised = my_events
 
     positive_event_array_denoised = generate_event_arrays(events_denoised, 1)
     negative_event_array_denoised = generate_event_arrays(events_denoised, 0)
 
-
-    # TODO Turn this into generation of fixed window length - DONE
-
-    # frames, cropped_frames, len_x, len_y, cropping_positions, time_frames \
-        # = generate_fixed_num_events_frames(positive_event_array, negative_event_array)
-
     frames, frames_denoised, cropped_frames, len_x, len_y, cropping_positions, time_frames \
         = generate_event_frames_with_fixed_time_window(positive_event_array_denoised, negative_event_array_denoised,
-                                                       positive_event_array, negative_event_array)
-
+                                                       positive_event_array, negative_event_array, **kwargs)
+    
     # Get mask based on index and target
 
     # TODO: replace this with correct mask - DONEE

@@ -90,38 +90,73 @@ class RGBDDatasetMultiple(ObjectsDataset):
 
         return new_frame_path, new_depth_path, new_mask_path, targets
 
-    def generate_actual_frames(self, new_frame_path, new_depth_path, new_mask_path):
+    def generate_actual_frames(self, new_frame_path, new_depth_path, new_mask_path, offset=0):
         # Locations for 4 digits of 34x34 in 64x64 images
-        image_locations = [(0, 0), (0, 32), (32, 0), (32, 32)]
+        # print(offset)
+        corner_0 = (random.randint(0, offset), random.randint(0, offset))
+        corner_1 = (random.randint(0, offset), 32 - random.randint(0, offset))
+        corner_2 = (32 - random.randint(0, offset), random.randint(0, offset))
+        corner_3 = (32 - random.randint(0, offset), 32 - random.randint(0, offset))
+        image_locations = [corner_0, corner_1, corner_2, corner_3]
+        # image_locations = [(0, 0), (0, 32), (32, 0), (32, 32)]
+        
+
         new_frame = np.zeros((64, 64, 3), dtype=np.uint8)
         new_depth = np.zeros((64, 64), dtype=np.uint8)
         new_mask = np.zeros((64, 64, 3), dtype=np.uint8)
 
         for d, (_, _, frame_path, depth_path, mask_path) in enumerate(self.current_entries):
             frame = skimage.io.imread(frame_path)
+            # print(frame)
             depth = cv2.imread(depth_path, cv2.IMREAD_GRAYSCALE)
             mask = cv2.cvtColor(skimage.io.imread(mask_path), cv2.COLOR_RGBA2BGR)
             h, w, c = frame.shape
             x0, y0, x1, y1 = image_locations[d][1], image_locations[d][0], \
                              image_locations[d][1] + w - 2, image_locations[d][0] + h - 2
 
-            new_frame[y0:y1, x0:x1] = frame[1:h - 1, 1:w - 1]
-            new_depth[y0:y1, x0:x1] = depth[1:h - 1, 1:w - 1]
-            new_mask[y0:y1, x0:x1] = mask[1:h - 1, 1:w - 1]
+            # new_frame[y0:y1, x0:x1] = frame[1:h - 1, 1:w - 1]
+            # new_depth[y0:y1, x0:x1] = depth[1:h - 1, 1:w - 1]
+            # new_mask[y0:y1, x0:x1] = mask[1:h - 1, 1:w - 1]
+            frame_crop = frame[1:h - 1, 1:w - 1]              # (32,32,3)
+
+            # bool-masker: waar de nieuwe digit iets tekent (niet zwart)
+            new_pixels = (frame_crop.sum(axis=2) > 0)[..., None]   # shape (32,32,1)
+
+            # overschrijf alleen die pixels; andere blijven ongewijzigd
+            new_frame[y0:y1, x0:x1] = np.where(
+                new_pixels,          # True  -> neem nieuwe pixel
+                frame_crop,          # False -> laat oude waarde staan
+                new_frame[y0:y1, x0:x1]
+            )
+            # new_frame[y0:y1, x0:x1] = np.maximum(new_frame[y0:y1, x0:x1], frame[1:h - 1, 1:w - 1])
+            new_depth[y0:y1, x0:x1] = np.maximum(new_depth[y0:y1, x0:x1], depth[1:h - 1, 1:w - 1])
+            new_mask[y0:y1, x0:x1] = np.maximum(new_mask[y0:y1, x0:x1], mask[1:h - 1, 1:w - 1])
 
             # Tweaks the values of the red channel, so we have different colors for each mask
             partial_mask = np.zeros((h - 2, w - 2))
+            partial_mask_temp = np.zeros((h - 2, w - 2))
             xs, ys = np.where(mask[1:h - 1, 1:w - 1, 2] > 0)
             partial_mask[xs, ys] = d / 4 * 255
-            new_mask[y0: y1, x0: x1, 1] = partial_mask
+            partial_mask_temp[xs, ys] = (d + 1) / 4 * 255
+            new_mask[y0:y1, x0:x1, 1] = np.where(
+                partial_mask_temp > 0,
+                partial_mask,
+                new_mask[y0:y1, x0:x1, 1]
+            )
+            # new_mask[y0:y1, x0:x1, 1] = partial_mask[partial_mask > 0]  # Set the green channel to the partial mask values
+            # new_mask[xs, ys, 1] = partial_mask[xs, ys]  
+            # new_mask[y0: y1, x0: x1, 1] = partial_mask
+
 
         new_frame = cv2.cvtColor(new_frame, cv2.COLOR_BGR2RGB)
 
         cv2.imwrite(new_frame_path, new_frame)
         cv2.imwrite(new_depth_path, new_depth)
         cv2.imwrite(new_mask_path, new_mask)
+    
+    
 
-    def load(self, dataset_dir, subset, skip=1):
+    def load(self, dataset_dir, subset, skip=1, offset=0):
         assert (subset == 'training' or subset == 'validation' or subset == 'testing')
 
         multiple_digits_dataset = dataset_dir + '_multiple'
@@ -165,7 +200,7 @@ class RGBDDatasetMultiple(ObjectsDataset):
                     self.generate_new_frame_paths(multiple_digits_dataset_folder)
 
                 if self.REGENERATE:
-                    self.generate_actual_frames(new_frame_path, new_depth_path, new_mask_path)
+                    self.generate_actual_frames(new_frame_path, new_depth_path, new_mask_path, offset)
 
                 self.add_image(
                     NAME,
@@ -218,28 +253,57 @@ class RGBDDatasetMultiple(ObjectsDataset):
         class_ids: a 1D array of class IDs of the instance masks.
         """
 
-        mask_path = self.image_info[image_id]['mask_path']
-        img = cv2.imread(mask_path, -1)
+        # mask_path = self.image_info[image_id]['mask_path']
+        # img = cv2.imread(mask_path, -1)
 
-        # https://github.com/alexsax/2D-3D-Semantics/blob/master/assets/utils.py
-        R = img[:, :, 0]
-        G = img[:, :, 1]
-        B = img[:, :, 2]
+        # # https://github.com/alexsax/2D-3D-Semantics/blob/master/assets/utils.py
+        # R = img[:, :, 0]
+        # G = img[:, :, 1]
+        # B = img[:, :, 2]
 
-        img = R * 256 * 256 + G * 256 + B
+        # img = R * 256 * 256 + G * 256 + B
 
-        instances = np.unique(img.flatten())
-        n_instances = len(instances)
+        # instances = np.unique(img.flatten())
+        # n_instances = len(instances)
 
-        targets = list(np.asarray(self.image_info[image_id]['targets']) + 1)
+        # targets = list(np.asarray(self.image_info[image_id]['targets']) + 1)
 
-        masks = np.repeat(np.expand_dims(img, axis=2), n_instances, axis=2)  # bottleneck code
-        masks = self.to_mask_v(masks, instances)
+        # masks = np.repeat(np.expand_dims(img, axis=2), n_instances, axis=2)  # bottleneck code
+        # masks = self.to_mask_v(masks, instances)
 
-        if not n_instances:
-            raise ValueError("No instances for image {}".format(mask_path))
+        # if not n_instances:
+        #     raise ValueError("No instances for image {}".format(mask_path))
 
-        class_ids = np.array([0] + targets)
+        # class_ids = np.array([0] + targets)
+        # print("Class IDs:", class_ids)
+        # return masks, class_ids
+        info  = self.image_info[image_id]
+        img   = cv2.imread(info['mask_path'], cv2.IMREAD_UNCHANGED)
+
+        R, G, B = img[:, :, 0].astype(np.int32), img[:, :, 1].astype(np.int32), img[:, :, 2].astype(np.int32)
+        encoded = R * 256 * 256 + G * 256 + B
+
+        instance_ids = np.unique(encoded)
+        instance_ids = instance_ids[instance_ids != 0]     
+
+        vis_masks = [(encoded == iid).astype(np.uint8) for iid in instance_ids]
+
+        targets      = [t + 1 for t in info['targets']]      
+        n_expected   = len(targets)                          
+        n_missing    = n_expected - len(vis_masks)           
+
+        if n_missing > 0:                                   
+            h, w = encoded.shape
+            vis_masks.extend([np.zeros((h, w), np.uint8)] * n_missing)
+        elif n_missing < 0:                                
+            vis_masks = vis_masks[:n_expected]
+
+        h, w = encoded.shape
+        masks = [np.zeros((h, w), np.uint8)] + vis_masks  
+        masks = np.stack(masks, axis=-1)
+
+        class_ids = np.array([0] + targets, dtype=np.int32)
+        # print("Class IDs:", class_ids)
         return masks, class_ids
 
 

@@ -168,7 +168,7 @@ class Config(object):
     BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
 
     # Max number of final detections
-    DETECTION_MAX_INSTANCES = 1 # TODO: Change this for multiple predictions
+    DETECTION_MAX_INSTANCES = 4 # TODO: Change this for multiple predictions
 
     # Minimum probability value to accept a detected instance
     # ROIs below this threshold are skipped

@@ -21,7 +21,7 @@ from mrcnn import visualize
 from mrcnn.model import log
 
 # Directory to save logs and trained model
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")  # TODO: set this to model directory
+MODEL_DIR = os.path.join(ROOT_DIR, "model")
 
 # Local path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
@@ -42,7 +42,7 @@ class DvsConfig(Config):
 
     # Train on 1 GPU and 8 images per GPU. Batch size is 8 (GPUs * images/GPU).
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 12
+    IMAGES_PER_GPU = 8
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 10  # background + 10 digits
@@ -88,6 +88,9 @@ class DvsConfig(Config):
         "mrcnn_mask_loss": 5.
     }
 
+class InferenceConfig(DvsConfig):
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
 
 config = DvsConfig()
 config.display()
