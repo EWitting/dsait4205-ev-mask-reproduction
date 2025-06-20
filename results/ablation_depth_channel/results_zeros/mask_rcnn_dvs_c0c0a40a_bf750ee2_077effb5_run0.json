@@ -1,0 +1,40 @@
+{
+    "AP": {
+        "mean": 0.37683168316831683,
+        "std": 0.21543844630123868,
+        "var": 0.0464137241446917,
+        "min": 0.0,
+        "max": 0.5
+    },
+    "IoU": {
+        "mean": 0.5018280446293331,
+        "std": 0.2933889837919361,
+        "var": 0.08607709581046497,
+        "min": 0.0,
+        "max": 0.8543689250946045
+    },
+    "Accuracy": {
+        "mean": 0.9584740485767327,
+        "std": 0.013064084245594616,
+        "var": 0.00017067029717599347,
+        "min": 0.8798828125,
+        "max": 0.989501953125
+    },
+    "number_of_samples": 2525,
+    "depth_channel_representation_mode": "zeros",
+    "window_len": 10,
+    "train_config": [
+        {
+            "epochs": 5,
+            "learning_rate": 0.001,
+            "layers": "heads"
+        },
+        {
+            "epochs": 10,
+            "learning_rate": 0.0001,
+            "layers": "all"
+        }
+    ],
+    "multiple_digits": false,
+    "model_path": "C:\\Users\\tfrva\\OneDrive\\Documenten\\CSE Master\\Fundamental Research in Machine and Deep Learning\\Reproduction Paper\\dsait4205-ev-mask-reproduction\\model\\mask_rcnn_dvs_c0c0a40a_bf750ee2_077effb5.h5"
+}
